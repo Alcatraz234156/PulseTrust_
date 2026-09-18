@@ -13,12 +13,9 @@
 // TRUSTTWIN CONFIGURATION
 // =====================================================
 
-// CHANGE THESE
-const char* WIFI_SSID = "your-ssid";
-const char* WIFI_PASSWORD = "your-password";
+const char* WIFI_SSID = "";
+const char* WIFI_PASSWORD = "";
 
-// Example:
-// http://192.168.1.10:8000/api/telemetry
 const char* API_URL =
   "http://YOUR_FASTAPI_ADDRESS:8000/api/telemetry";
 
@@ -31,7 +28,7 @@ const char* DEVICE_ID = "trusttwin-plant-01";
 #define TEMP1_PIN 32
 #define TEMP2_PIN 33
 
-#define HALL_PIN 27
+#define HALL_PIN 34
 #define FAN_PIN 25
 #define LED_PIN 26
 #define BUZZER_PIN 14
@@ -75,33 +72,30 @@ Adafruit_INA219 ina219;
 // STATUS
 // =====================================================
 
-bool mpuAvailable = false;
 bool inaAvailable = false;
 bool oledAvailable = false;
-
 bool fanOn = false;
 
 // =====================================================
-// RPM
-// One magnet = one Hall pulse per revolution
+// HALL SENSOR / RPM
+// 44E ANALOG HALL SENSOR
 // =====================================================
-
-volatile uint32_t hallPulses = 0;
 
 float rpm = 0;
 
+unsigned long revolutionCount = 0;
 unsigned long lastRPMTime = 0;
 unsigned long lastTelemetryTime = 0;
 
+bool magnetDetected = false;
+
+// Calibrated from your sensor:
+// No magnet ~= 0
+// Magnet close ~= 680
+const int HALL_ON_THRESHOLD = 250;
+const int HALL_OFF_THRESHOLD = 100;
+
 const unsigned long TELEMETRY_INTERVAL = 1000;
-
-// =====================================================
-// HALL INTERRUPT
-// =====================================================
-
-void IRAM_ATTR hallISR() {
-  hallPulses++;
-}
 
 // =====================================================
 // WIFI
@@ -140,24 +134,44 @@ void connectWiFi() {
 }
 
 // =====================================================
-// RPM CALCULATION
+// RPM CALCULATION - 44E ANALOG HALL SENSOR
 // =====================================================
 
 void calculateRPM() {
+
+  int hallValue = analogRead(HALL_PIN);
+
+  // Magnet approaches sensor
+  if (
+    !magnetDetected &&
+    hallValue > HALL_ON_THRESHOLD
+  ) {
+
+    revolutionCount++;
+    magnetDetected = true;
+  }
+
+  // Magnet leaves sensor
+  if (
+    magnetDetected &&
+    hallValue < HALL_OFF_THRESHOLD
+  ) {
+
+    magnetDetected = false;
+  }
 
   unsigned long now = millis();
 
   if (now - lastRPMTime >= 1000) {
 
-    noInterrupts();
+    unsigned long elapsed =
+      now - lastRPMTime;
 
-    uint32_t pulses = hallPulses;
-    hallPulses = 0;
+    rpm =
+      revolutionCount *
+      (60000.0 / elapsed);
 
-    interrupts();
-
-    // One magnet = one pulse per revolution
-    rpm = pulses * 60.0;
+    revolutionCount = 0;
 
     lastRPMTime = now;
   }
@@ -195,7 +209,7 @@ void setAlarm(bool state) {
 }
 
 // =====================================================
-// SEND TO FASTAPI
+// SEND TELEMETRY TO FASTAPI
 // =====================================================
 
 void sendTelemetry(
@@ -204,7 +218,8 @@ void sendTelemetry(
   float vibration,
   float voltage,
   float current,
-  float power
+  float power,
+  int hallRaw
 ) {
 
   if (WiFi.status() != WL_CONNECTED) {
@@ -245,6 +260,10 @@ void sendTelemetry(
   json += String(rpm, 0);
   json += ",";
 
+  json += "\"hall_raw\":";
+  json += String(hallRaw);
+  json += ",";
+
   json += "\"vibration\":";
   json += String(vibration, 3);
   json += ",";
@@ -270,16 +289,25 @@ void sendTelemetry(
   Serial.println("Sending:");
   Serial.println(json);
 
-  int responseCode = http.POST(json);
+  int responseCode =
+    http.POST(json);
 
-  Serial.print("FastAPI response: ");
-  Serial.println(responseCode);
+  Serial.print(
+    "FastAPI response: "
+  );
+
+  Serial.println(
+    responseCode
+  );
 
   if (responseCode > 0) {
 
-    String response = http.getString();
+    String response =
+      http.getString();
 
-    Serial.println(response);
+    Serial.println(
+      response
+    );
   }
 
   http.end();
@@ -301,7 +329,10 @@ void updateDisplay(
 
   display.clearDisplay();
 
-  display.setTextColor(SSD1306_WHITE);
+  display.setTextColor(
+    SSD1306_WHITE
+  );
+
   display.setTextSize(1);
 
   display.setCursor(0, 0);
@@ -350,13 +381,13 @@ void setup() {
   Serial.println("    Trust Before Action");
   Serial.println("======================");
 
-  // --------------------------
+  // ===================================================
   // GPIO
-  // --------------------------
+  // ===================================================
 
   pinMode(
     HALL_PIN,
-    INPUT_PULLUP
+    INPUT
   );
 
   pinMode(
@@ -374,26 +405,28 @@ void setup() {
     OUTPUT
   );
 
-  setFan(false);
-  setAlarm(false);
+  setFan(true);
+  setAlarm(true);
 
-  // --------------------------
+  // ESP32 ADC
+  analogReadResolution(12);
+
+  // ===================================================
   // I2C
-  // --------------------------
+  // ===================================================
 
   Wire.begin(
     SDA_PIN,
     SCL_PIN
   );
 
-  // --------------------------
+  // ===================================================
   // DS18B20
-  // --------------------------
+  // ===================================================
 
   tempSensor1.begin();
   tempSensor2.begin();
 
-  // 10-bit resolution gives faster conversion
   tempSensor1.setResolution(10);
   tempSensor2.setResolution(10);
 
@@ -401,40 +434,39 @@ void setup() {
     "DS18B20 initialized"
   );
 
-  // --------------------------
+  // ===================================================
   // MPU6050
-  // --------------------------
+  // ===================================================
+  //
+  // Your MPU responds correctly at 0x68 even though
+  // the Adafruit begin() check reports failure.
+  // We therefore initialize it and continue using it.
+  // ===================================================
 
-  if (mpu.begin()) {
+  mpu.begin(
+    0x68,
+    &Wire
+  );
 
-    mpuAvailable = true;
+  mpu.setAccelerometerRange(
+    MPU6050_RANGE_8_G
+  );
 
-    mpu.setAccelerometerRange(
-      MPU6050_RANGE_8_G
-    );
+  mpu.setGyroRange(
+    MPU6050_RANGE_500_DEG
+  );
 
-    mpu.setGyroRange(
-      MPU6050_RANGE_500_DEG
-    );
+  mpu.setFilterBandwidth(
+    MPU6050_BAND_21_HZ
+  );
 
-    mpu.setFilterBandwidth(
-      MPU6050_BAND_21_HZ
-    );
+  Serial.println(
+    "MPU6050 initialized at 0x68"
+  );
 
-    Serial.println(
-      "MPU6050 connected"
-    );
-
-  } else {
-
-    Serial.println(
-      "WARNING: MPU6050 not found"
-    );
-  }
-
-  // --------------------------
+  // ===================================================
   // INA219
-  // --------------------------
+  // ===================================================
 
   if (ina219.begin()) {
 
@@ -451,9 +483,9 @@ void setup() {
     );
   }
 
-  // --------------------------
+  // ===================================================
   // OLED
-  // --------------------------
+  // ===================================================
 
   if (
     display.begin(
@@ -472,13 +504,26 @@ void setup() {
 
     display.setTextSize(1);
 
-    display.setCursor(0, 0);
+    display.setCursor(
+      0,
+      0
+    );
 
-    display.println("TRUSTTWIN");
+    display.println(
+      "TRUSTTWIN"
+    );
+
     display.println();
-    display.println("Trust Before Action");
+
+    display.println(
+      "Trust Before Action"
+    );
+
     display.println();
-    display.println("Booting...");
+
+    display.println(
+      "Booting..."
+    );
 
     display.display();
 
@@ -493,27 +538,31 @@ void setup() {
     );
   }
 
-  // --------------------------
+  // ===================================================
   // HALL SENSOR
-  // --------------------------
+  // ===================================================
 
-  attachInterrupt(
-    digitalPinToInterrupt(HALL_PIN),
-    hallISR,
-    FALLING
+  Serial.println(
+    "44E Hall sensor initialized on GPIO34"
+  );
+
+  Serial.print(
+    "Hall baseline: "
   );
 
   Serial.println(
-    "Hall RPM sensor initialized"
+    analogRead(HALL_PIN)
   );
 
-  // --------------------------
+  // ===================================================
   // WIFI
-  // --------------------------
+  // ===================================================
 
   connectWiFi();
 
   delay(1000);
+
+  lastRPMTime = millis();
 
   Serial.println();
   Serial.println(
@@ -527,9 +576,14 @@ void setup() {
 
 void loop() {
 
+  // ===================================================
+  // HALL / RPM
+  // ===================================================
+
   calculateRPM();
 
-  unsigned long now = millis();
+  unsigned long now =
+    millis();
 
   if (
     now - lastTelemetryTime <
@@ -537,7 +591,6 @@ void loop() {
   ) {
 
     delay(5);
-
     return;
   }
 
@@ -560,40 +613,31 @@ void loop() {
   // MPU6050
   // ===================================================
 
-  float vibration = 0;
+  sensors_event_t accel;
+  sensors_event_t gyro;
+  sensors_event_t internalTemp;
 
-  if (mpuAvailable) {
+  mpu.getEvent(
+    &accel,
+    &gyro,
+    &internalTemp
+  );
 
-    sensors_event_t accel;
-    sensors_event_t gyro;
-    sensors_event_t internalTemp;
+  float ax =
+    accel.acceleration.x;
 
-    mpu.getEvent(
-      &accel,
-      &gyro,
-      &internalTemp
+  float ay =
+    accel.acceleration.y;
+
+  float az =
+    accel.acceleration.z;
+
+  float vibration =
+    sqrt(
+      ax * ax +
+      ay * ay +
+      az * az
     );
-
-    float ax =
-      accel.acceleration.x;
-
-    float ay =
-      accel.acceleration.y;
-
-    float az =
-      accel.acceleration.z;
-
-    // Acceleration magnitude.
-    // We'll replace this later with vibration RMS
-    // after physically mounting the MPU6050.
-
-    vibration =
-      sqrt(
-        ax * ax +
-        ay * ay +
-        az * az
-      );
-  }
 
   // ===================================================
   // INA219
@@ -618,7 +662,14 @@ void loop() {
   }
 
   // ===================================================
-  // LOCAL DISPLAY
+  // HALL RAW VALUE
+  // ===================================================
+
+  int hallRaw =
+    analogRead(HALL_PIN);
+
+  // ===================================================
+  // OLED
   // ===================================================
 
   updateDisplay(
@@ -638,6 +689,8 @@ void loop() {
     vibration,
     voltage,
     current,
-    power
+    power,
+    hallRaw
   );
+
 }
