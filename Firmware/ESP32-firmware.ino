@@ -377,7 +377,7 @@ void setup() {
 
   Serial.println();
   Serial.println("======================");
-  Serial.println("      TRUSTTWIN");
+  Serial.println("      PULSETRUST_");
   Serial.println("    Trust Before Action");
   Serial.println("======================");
 
@@ -510,7 +510,7 @@ void setup() {
     );
 
     display.println(
-      "TRUSTTWIN"
+      "PULSETRUST_"
     );
 
     display.println();
