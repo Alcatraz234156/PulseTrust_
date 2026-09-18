@@ -5,6 +5,7 @@ class Telemetry(BaseModel):
     temp_1: float
     temp_2: float
     rpm: float
+    hall_raw: int
     vibration: float
     voltage: float
     current: float

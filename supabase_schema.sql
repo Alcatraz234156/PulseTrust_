@@ -6,6 +6,7 @@ CREATE TABLE sensor_readings (
     temp_1 double precision not null,
     temp_2 double precision not null,
     rpm double precision not null,
+    hall_raw integer not null default 0,
     vibration double precision not null,
     voltage double precision not null,
     current double precision not null,

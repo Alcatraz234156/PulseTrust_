@@ -1,104 +1,207 @@
 # PulseTrust_
 
-PulseTrust_ is an industrial machine-monitoring and sensor-trust prototype that ingests telemetry from physical DC motors to track their health and operation.
+**PulseTrust_** is an industrial sensor-trust and machine-monitoring prototype designed to prevent autonomous systems from making decisions based on unreliable sensor data.
 
-## Current Architecture
+The system collects real-world telemetry from an ESP32-based hardware platform, sends it to a FastAPI backend, and stores the readings in Supabase for further trust analysis, visualization, and decision-making.
 
-Sensors -> ESP32 -> FastAPI -> Supabase
+## Architecture
 
-## Sensors
+```text
+Physical Sensors
+      ↓
+     ESP32
+      ↓
+   FastAPI
+      ↓
+   Supabase
+```
 
-* MPU6500-family IMU
-* Temperature sensor
-* Hall-effect sensor
-* INA219 current/power monitor
+## Hardware & Sensors
+
+The current prototype uses:
+
+- ESP32 DevKit
+- 2× DS18B20 temperature sensors
+- MPU6050-family IMU for motion/vibration sensing
+- 44E Hall-effect sensor for RPM measurement
+- INA219 current, voltage, and power monitor
+- 5V DC fan as the monitored/controlled actuator
+- OLED display
+- LED and buzzer for physical status indication
+
+## Telemetry
+
+PulseTrust_ currently records:
+
+- Temperature Sensor 1
+- Temperature Sensor 2
+- RPM
+- Raw Hall-effect sensor value
+- Vibration / acceleration
+- Voltage
+- Current
+- Power
+- Fan state
+- Device ID
+- Server-generated timestamp
 
 ## Backend Setup
 
-1. Enter the backend directory:
-   ```bash
-   cd PulseTrust_/backend
-   ```
+### 1. Enter the backend directory
 
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   ```
-
-3. Activate the virtual environment:
-   * Windows: `.\venv\Scripts\Activate.ps1`
-   * macOS/Linux: `source venv/bin/activate`
-
-4. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. Configure `.env`:
-   Copy `.env.example` to `.env` and fill in your Supabase credentials:
-   ```
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_KEY=your_backend_supabase_key
-   ```
-
-6. Start the server:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-## Running
-
-Run this from the `backend` directory:
 ```bash
-uvicorn app.main:app --reload
+cd backend
 ```
 
-The API will be available at: http://127.0.0.1:8000
-Swagger documentation: http://127.0.0.1:8000/docs
+### 2. Create a virtual environment
 
-To expose the server on your local network (so the ESP32 can connect), use:
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m venv .venv
 ```
-*Note: You may need to allow port 8000 through your local OS firewall for the ESP32 to reach the laptop.*
+
+### 3. Activate the virtual environment
+
+**Windows PowerShell**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS/Linux**
+
+```bash
+source .venv/bin/activate
+```
+
+### 4. Install dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 5. Configure environment variables
+
+Copy `.env.example` to `.env` and add your Supabase credentials:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_backend_supabase_key
+```
+
+> Never commit `.env` or expose Supabase secrets in the ESP32 firmware or frontend.
+
+### 6. Start the API
+
+For local development:
+
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## ESP32 / LAN Setup
+
+The ESP32 cannot access the FastAPI server using `127.0.0.1`, because that address refers to the ESP32 itself from its perspective.
+
+Start FastAPI on all network interfaces:
+
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Find the laptop's local IPv4 address on Windows:
+
+```powershell
+ipconfig
+```
+
+Then configure the ESP32 endpoint using the laptop's LAN address:
+
+```text
+http://192.168.1.100:8000/api/telemetry
+```
+
+Replace `192.168.1.100` with the actual IPv4 address of the machine running PulseTrust_.
+
+The ESP32 and backend machine must be reachable over the same network.
+
+> Your operating system firewall may need to allow incoming connections on port `8000`.
 
 ## API
 
-* **GET /** : Returns basic API status and metadata.
-* **GET /health** : Returns health status and whether the database is configured.
-* **POST /api/telemetry** : Ingests a new sensor reading based on the hardware contract.
-* **GET /api/telemetry** : Retrieves recent readings (supports `device_id` and `limit` query parameters).
-* **GET /api/telemetry/latest** : Retrieves the single most recent reading.
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | API status and project metadata |
+| `GET` | `/health` | Backend health and database configuration status |
+| `POST` | `/api/telemetry` | Store a new telemetry reading |
+| `GET` | `/api/telemetry` | Retrieve recent telemetry |
+| `GET` | `/api/telemetry/latest` | Retrieve the latest telemetry reading |
 
-### Example POST Body
+`GET /api/telemetry` supports optional `device_id` and `limit` query parameters.
+
+## Example Telemetry Payload
+
 ```json
 {
-  "device_id": "pulsetrust-motor-01",
-  "temp_1": 42.3,
-  "temp_2": 45.1,
+  "device_id": "pulsetrust-plant-01",
+  "temp_1": 28.5,
+  "temp_2": 28.75,
   "rpm": 1500.0,
-  "vibration": 1.01,
-  "voltage": 11.94,
-  "current": 1.72,
-  "power": 20.54,
+  "hall_raw": 320,
+  "vibration": 9.61,
+  "voltage": 4.85,
+  "current": 0.143,
+  "power": 0.694,
   "fan": true
 }
 ```
 
-## ESP32 Contract
+The backend automatically generates the `recorded_at` timestamp when the telemetry is received.
 
-The ESP32 must connect to Wi-Fi and send HTTP POST requests containing JSON payloads (like the example above) to the FastAPI server. Note that the server generates the `recorded_at` timestamp upon receipt.
+The ESP32 should send the request with:
 
-**Important:** The ESP32 cannot use `127.0.0.1`. It must use the laptop's Local Area Network (LAN) IP address. 
-To find this IP on Windows, open a terminal and run `ipconfig`. Look for the "IPv4 Address" under your Wi-Fi adapter (e.g., `192.168.1.100`).
+```text
+Content-Type: application/json
+```
 
-The target URL for the ESP32 will look like:
-`http://192.168.1.100:8000/api/telemetry`
+## Database
 
-Remember to set the header: `Content-Type: application/json`
+Telemetry is stored in the Supabase `sensor_readings` table.
 
-## Current Scope
+Each reading contains the sensor measurements, actuator state, device identifier, and timestamp required for later analysis and visualization.
 
-Current version handles sensor ingestion, validation, storage, and retrieval.
-Signal processing, NumPy/Pandas analysis, trust scoring, ML, frontend visualization, AI explanations, and AWS integration are intentionally future stages.
+## Current Status
 
+The current PulseTrust_ prototype supports:
+
+- Real physical sensor acquisition
+- Redundant temperature sensing
+- RPM measurement
+- Vibration monitoring
+- Electrical telemetry
+- ESP32 Wi-Fi telemetry transmission
+- FastAPI validation and ingestion
+- Supabase telemetry storage
+- Latest and historical telemetry retrieval
+- Physical actuator and status hardware
+
+## Project Direction
+
+PulseTrust_ is being developed around the principle:
+
+> **Trust Before Action.**
+
+Rather than assuming every sensor measurement is reliable, PulseTrust_ is designed to provide an evidence layer between physical sensors and autonomous decisions.
+
+The telemetry infrastructure established in the current prototype provides the foundation for sensor agreement analysis, anomaly detection, trust scoring, decision gating, visualization, AI-assisted explanations, and cloud integration.

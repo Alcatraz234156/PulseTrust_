@@ -32,18 +32,24 @@ def health_check():
 @app.post("/api/telemetry", status_code=status.HTTP_201_CREATED, tags=["Telemetry"])
 def create_reading(data: Telemetry):
     try:
-        # Convert model to dict and inject server-side timestamp
         reading_dict = data.model_dump()
-        reading_dict['recorded_at'] = datetime.now(timezone.utc).isoformat()
-        
-        inserted_data = db.insert_sensor_reading(reading_dict)
+        reading_dict["recorded_at"] = datetime.now(timezone.utc).isoformat()
+
+        inserted_data = db.insert_telemetry(reading_dict)
+
         return {
             "success": True,
             "message": "Sensor reading stored",
             "reading": inserted_data
         }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Database insertion failed")
+        print("SUPABASE ERROR:", repr(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Supabase error: {str(e)}"
+        )
 
 @app.get("/api/telemetry/latest", tags=["Telemetry"])
 def get_latest_reading(device_id: Optional[str] = Query(None, description="Filter by device ID")):
