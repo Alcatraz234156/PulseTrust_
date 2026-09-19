@@ -1,114 +1,203 @@
-# PulseTrust_
+﻿# PulseTrust_
 
 > **Trust Before Action.**
 
-**PulseTrust_** is an industrial sensor-trust and machine-monitoring prototype designed to prevent autonomous systems from making decisions based on unreliable sensor data.
+PulseTrust_ is an industrial sensor-trust and machine-monitoring prototype. It combines ESP32 telemetry, Supabase history, Isolation Forest anomaly detection, redundant sensor comparison, and deterministic trust scoring to help distinguish unreliable measurements from real changes in a machine's operating conditions.
 
-Instead of assuming that every sensor reading is trustworthy, PulseTrust_ introduces an **evidence and trust layer** between physical sensors and downstream autonomous decisions.
+**An abnormal measurement does not necessarily mean the sensor is faulty.** Two sensors reporting the same unusual temperature may be accurately observing a real process event. PulseTrust evaluates measurement trust separately from process health.
 
-The system combines real-world ESP32 telemetry, behavioral anomaly detection, redundant sensor corroboration, deterministic trust scoring, component metadata, and AI-assisted reasoning to distinguish between:
+## Contents
 
-- normal sensor behavior,
-- potentially faulty or inconsistent sensors,
-- and genuine abnormal process conditions reported by trustworthy sensors.
-
-A key principle of PulseTrust_ is:
-
-> **An abnormal measurement does not necessarily mean the sensor is faulty.**
-
-A sensor may be accurately reporting a dangerous or unusual physical condition. PulseTrust_ therefore evaluates **sensor trust separately from process health**.
-
----
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Local setup](#local-setup)
+- [Dashboard](#dashboard)
+- [Hardware and telemetry](#hardware-and-telemetry)
+- [API reference](#api-reference)
+- [Trust engine](#trust-engine)
+- [Simulation scenarios](#simulation-scenarios)
+- [AWS App Runner deployment](#aws-app-runner-deployment)
+- [Checks and tests](#checks-and-tests)
+- [Troubleshooting](#troubleshooting)
+- [Prototype scope](#prototype-scope)
 
 ## Architecture
 
-```text
-                    PulseTrust_ Architecture
-
-Physical Sensors
-      │
-      ▼
-    ESP32
-      │
-      ▼
-   FastAPI
-      │
-      ├──────────────► Supabase
-      │                    │
-      │              Telemetry History
-      │                    │
-      ▼                    ▼
-Feature Engineering ◄──────┘
-      │
-      ▼
-Isolation Forest
-Behavioral Anomaly Detection
-      │
-      ├──────────────────────┐
-      │                      │
-      ▼                      ▼
-Sensor Agreement       Cross-Sensor Evidence
-      │                      │
-      └──────────┬───────────┘
-                 ▼
-            Trust Engine
-                 │
-        ┌────────┴─────────┐
-        ▼                  ▼
- Trust Score / State    Gemini Reasoner
-        │                  │
-        │                  ├─ Sensor Assessment
-        │                  ├─ Process Assessment
-        │                  ├─ Explanation
-        │                  └─ Recommended Action
-        │
-        ▼
-      Web Dashboard
-        │
-   ┌────┼─────────┐
-   ▼    ▼         ▼
-Telemetry  Digital   Trust / AI
- Charts     Twin     Explanation
+```mermaid
+flowchart TD
+    Sensors[Physical sensors] --> ESP32
+    ESP32 -->|POST telemetry| API[FastAPI]
+    API --> DB[(Supabase sensor_readings)]
+    DB --> Features[Temperature feature extraction]
+    Features --> IF[Isolation Forest]
+    DB --> Agreement[Redundant sensor comparison]
+    IF --> Trust[Deterministic trust engine]
+    Agreement --> Trust
+    Trust --> Results[Scores, states, reasons]
+    Results --> Dashboard[TrustTwin dashboard]
+    API -->|Live telemetry| Dashboard
+    Results --> Gemini[Gemini explanation endpoint]
 ```
 
-The deterministic trust engine remains operational independently of the AI reasoning layer.
+The backend application is `app.main:app`. The dashboard uses vanilla HTML, CSS, JavaScript, and SVG; it has no Node.js build step. Gemini explains evidence through a separate API endpoint and does not calculate or override trust scores.
 
-Gemini is used to **interpret and explain evidence**, not to directly calculate the core trust score.
+Experimental component lookup and datasheet modules use Mouser, Nexar, Gemini, and PDF extraction. They are separate from the live temperature-trust pipeline and are not exposed as dedicated routes in `app.main`.
 
----
+## Repository layout
 
-## Hardware & Sensors
+```text
+PulseTrust_/
+|-- backend/
+|   |-- app/
+|   |   |-- main.py                 # API routes, CORS, optional dashboard serving
+|   |   |-- config.py               # Environment-backed settings
+|   |   |-- database.py             # Supabase access
+|   |   |-- models.py               # Telemetry request schema
+|   |   `-- trust/                  # Features, inference, scoring, integrations
+|   |-- models/
+|   |   `-- temperature_isolation_forest.joblib
+|   |-- tests/test_deployment.py
+|   |-- .env.example
+|   |-- requirements.txt
+|   |-- start.py                    # PORT-aware server launcher
+|   |-- apprunner.yaml
+|   `-- DEPLOYMENT.md
+|-- frontend/
+|   |-- index.html
+|   |-- styles.css
+|   |-- dashboard.css
+|   `-- script.js
+|-- Firmware/ESP32-firmware.ino
+|-- supabase_schema.sql
+|-- supabase_migration_add_hall_raw.sql
+`-- LICENSE
+```
 
-The current physical prototype uses:
+## Local setup
 
-- ESP32 DevKit
-- 2× DS18B20 temperature sensors
-- MPU6050-family IMU for motion/acceleration monitoring
-- 44E Hall-effect sensor for RPM measurement
-- INA219 current, voltage, and power monitor
-- 5V DC fan as the monitored/controlled actuator
-- OLED display
-- LED and buzzer for physical status indication
+Run these commands from the repository root unless instructed otherwise.
 
----
+### 1. Create a Python environment
 
-## Telemetry
+Python 3.11 is the configured App Runner target. Local deployment checks have also passed on Python 3.14. Use an interpreter with compatible packages for your operating system; target-runtime caveats are listed under deployment.
 
-PulseTrust_ currently records:
+```sh
+cd backend
+python -m venv .venv
+```
 
-- Temperature Sensor 1
-- Temperature Sensor 2
-- RPM
-- Raw Hall-effect sensor value
-- Vibration / acceleration measurement
-- Voltage
-- Current
-- Power
-- Fan state
-- Device ID
-- Server-generated timestamp
+Activate it in PowerShell:
 
-Example telemetry:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Or on macOS/Linux:
+
+```sh
+source .venv/bin/activate
+```
+
+Install the dependencies:
+
+```sh
+python -m pip install -r requirements.txt
+```
+
+### 2. Configure runtime environment variables
+
+Create `backend/.env`. You can copy `backend/.env.example`, but that template currently contains only the Supabase entries: **add `GEMINI_API_KEY` yourself**.
+
+```dotenv
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_backend_supabase_key
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+These are placeholders, not working credentials.
+
+| Variable | Purpose | Required when |
+|---|---|---|
+| `SUPABASE_URL` | Supabase project URL | Reading or writing live telemetry |
+| `SUPABASE_KEY` | Backend database credential | Reading or writing live telemetry |
+| `GEMINI_API_KEY` | Gemini client credential | Starting the current app; client initialization occurs at import |
+| `MOUSER_API_KEY` | Component lookup | Using the Mouser integration |
+| `NEXAR_CLIENT_ID` | Nexar client identifier | Using the Nexar integration |
+| `NEXAR_CLIENT_SECRET` | Nexar client secret | Using the Nexar integration |
+| `PORT` | Server listening port | Optional; `start.py` defaults to `8080` |
+
+Keep credentials on the backend. `.env` is ignored by Git; never copy backend credentials into frontend code, firmware, or deployment YAML. Run local commands from `backend` so the current settings loader finds its `.env` file.
+
+Gemini request failures are handled by the explanation endpoint, allowing deterministic trust results to remain available. A missing Gemini key can still prevent application startup because the client is initialized when the module is imported.
+
+### 3. Set up Supabase
+
+For a new database, run [supabase_schema.sql](supabase_schema.sql) in the Supabase SQL editor. It creates `sensor_readings` and an index on device ID and recording time.
+
+For an existing installation that lacks `hall_raw`, run [supabase_migration_add_hall_raw.sql](supabase_migration_add_hall_raw.sql) instead of recreating the table. Ensure the backend credential has the required read/write access.
+
+The API supplies `recorded_at` in UTC during ingestion. The schema also maintains `id` and `created_at`. There is no automatic database migration at server startup.
+
+### 4. Start the server
+
+From `backend`, with the virtual environment active:
+
+```sh
+python start.py
+```
+
+This starts `app.main:app` on `0.0.0.0`, using `PORT` or defaulting to `8080`.
+
+| Local URL | Purpose |
+|---|---|
+| http://127.0.0.1:8080/dashboard/ | TrustTwin dashboard, when the frontend folder exists |
+| http://127.0.0.1:8080/docs | Interactive Swagger API documentation |
+| http://127.0.0.1:8080/redoc | ReDoc API reference |
+| http://127.0.0.1:8080/health | Service health and database configuration presence |
+| http://127.0.0.1:8080/ | API metadata |
+
+For development with automatic reload:
+
+```sh
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+```
+
+The direct Uvicorn command uses the explicit port; `start.py` is the entry point that reads `PORT`. In PowerShell, set a different launcher port with `$env:PORT = "9090"` before running `python start.py`.
+
+## Dashboard
+
+The recommended local setup is the backend-served `/dashboard/` URL. It automatically uses the same origin for API requests, including a custom backend port.
+
+The dashboard provides sidebar navigation, a trust-score overview, an animated fan digital twin, temperature/RPM/electrical/vibration panels, per-sensor trust, evidence panels, charts, a trust-state timeline, and technical diagnostics. Telemetry cards open expanded charts.
+
+Live polling runs every five seconds and retries after connection failures. If trust analysis is unavailable, raw telemetry can still be displayed. Charts accumulate up to 200 readings during the browser session; they do not currently preload the database's historical readings.
+
+Some panels await backend fields that are not currently returned, including the detailed score-breakdown ledger and temporal summary. The Gemini explanation endpoint is not polled by the dashboard. The API's `agreement` field is an object, while the current summary badges expect a boolean, so those badges may show a dash even when agreement evidence is present. These are frontend integration gaps, not missing database readings.
+
+### Separate frontend development server
+
+The standalone frontend currently connects to **port 8000 on its own hostname**. To use that mode, start the backend from `backend`:
+
+```sh
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+In another terminal, from the repository root:
+
+```sh
+cd frontend
+python -m http.server 5500
+```
+
+Open http://127.0.0.1:5500. Avoid opening `index.html` directly through a `file://` URL.
+
+A separately deployed Amplify frontend still needs its API base URL updated to the App Runner service URL. That frontend deployment wiring has not been implemented.
+
+## Hardware and telemetry
+
+The prototype hardware includes an ESP32 DevKit, two DS18B20 temperature sensors, an MPU6050-family IMU, a 44E Hall-effect sensor, an INA219 electrical monitor, a 5V DC fan, an OLED display, LEDs, and a buzzer. Firmware is in [Firmware/ESP32-firmware.ino](Firmware/ESP32-firmware.ino).
+
+All fields below are required by the current telemetry request schema:
 
 ```json
 {
@@ -125,523 +214,143 @@ Example telemetry:
 }
 ```
 
----
+Temperatures are in degrees Celsius; electrical values use volts, amperes, and watts. The dashboard labels vibration in m/s squared, but the IMU value can include gravity and should not automatically be interpreted as a calibrated vibration-severity measurement.
 
-# Sensor Trust Intelligence
+To ingest real readings, send JSON to `POST /api/telemetry`, or use **Try it out** in `/docs`. A successful write returns HTTP 201 with `success`, `message`, and `reading`. Trust analysis needs at least five temperature readings per sensor.
 
-## 1. Feature Engineering
+### ESP32 over LAN
 
-Historical telemetry is converted into behavioral features such as:
-
-- normalized value
-- rate of change
-- rolling mean
-- rolling standard deviation
-- deviation from baseline
-- stuck-sensor score
-
-These features allow PulseTrust_ to reason about sensor behavior rather than relying only on absolute thresholds.
-
----
-
-## 2. Behavioral Anomaly Detection
-
-PulseTrust_ currently uses an **Isolation Forest** model to identify unusual sensor behavior.
-
-The current prototype demonstrates this primarily using the redundant temperature sensors.
-
-The model can identify behaviors such as:
+With the default launcher, point the firmware at:
 
 ```text
-Sudden spike
-     ↓
-Behavioral anomaly
-
-Sensor remains frozen
-     ↓
-Potential stuck-sensor anomaly
-
-Unexpected continuous drift
-     ↓
-Behavioral anomaly
+http://<backend-machine-LAN-IP>:8080/api/telemetry
 ```
 
-For the current hackathon prototype, the temperature anomaly model is bootstrapped using synthetic baseline telemetry representing normal temperature behavior.
+Use `ipconfig` on Windows to find the machine's LAN address. The ESP32 and backend must be reachable on the network, and the firewall must allow the listening port. `127.0.0.1` on the ESP32 refers to the ESP32 itself. If running the standalone development setup on port 8000, use that port in the firmware URL too.
 
-The resulting anomaly evidence is then combined with other evidence rather than being treated as proof that a sensor has failed.
+## API reference
 
-> Anomaly detection and sensor trust are intentionally separate concepts.
-
----
-
-## 3. Cross-Sensor Corroboration
-
-PulseTrust_ compares redundant sensor measurements to determine whether independent sensors support the same physical observation.
-
-For example:
-
-```text
-Sensor 1: 45.0 °C
-Sensor 2: 28.5 °C
-
-Behavior:
-Sensor 1 anomalous
-Sensor 2 normal
-Sensors disagree
-
-Result:
-Sensor 1 becomes significantly less trustworthy.
-```
-
-But:
-
-```text
-Sensor 1: 44.7 °C
-Sensor 2: 44.6 °C
-
-Behavior:
-Both sensors show abnormal behavior
-Sensors strongly agree
-
-Result:
-The process may be abnormal,
-while the measurements remain trustworthy.
-```
-
-This allows PulseTrust_ to distinguish **sensor failure from a genuine physical event**.
-
----
-
-## 4. Trust Engine
-
-The trust engine combines:
-
-```text
-Behavioral anomaly evidence
-            +
-Sensor agreement
-            +
-Cross-sensor corroboration
-            ↓
-        Trust Score
-```
-
-Current trust states are:
-
-```text
-80–100   TRUSTED
-50–79    DEGRADED
-0–49     UNTRUSTED
-```
-
-The current scores are prototype evidence scores and should not be interpreted as calibrated probabilities of sensor correctness.
-
-Example output:
-
-```json
-{
-  "trust_score": 95.0,
-  "state": "TRUSTED",
-  "sensor_1": {
-    "value": 44.65,
-    "trust_score": 95.0,
-    "anomaly": true
-  },
-  "sensor_2": {
-    "value": 44.56,
-    "trust_score": 95.0,
-    "anomaly": true
-  },
-  "corroborated_event": true
-}
-```
-
-Here, both sensors are behaving unusually but corroborate each other.
-
-PulseTrust_ therefore preserves high **sensor trust** while allowing the downstream system to recognize that the **physical process itself may be abnormal**.
-
----
-
-## 5. AI-Assisted Reasoning
-
-PulseTrust_ includes a Gemini-based reasoning layer.
-
-Gemini receives:
-
-```text
-Current telemetry
-        +
-Trust Engine result
-        +
-Anomaly evidence
-        +
-Sensor agreement evidence
-        ↓
-AI Explanation
-```
-
-It generates:
-
-- a concise trust summary
-- sensor assessment
-- process assessment
-- recommended action
-
-The AI layer does **not** calculate or override the deterministic trust score.
-
-If AI reasoning becomes unavailable, the core trust engine continues functioning.
-
----
-
-## Component Intelligence
-
-PulseTrust_ also contains an experimental component-identification and profiling layer.
-
-Given a sensor part number, the backend can retrieve component metadata through the Mouser Search API and normalize the information into a sensor profile.
-
-The architecture is designed to support future automatic ingestion of manufacturer datasheets and sensor specifications.
-
-Detailed datasheet extraction is currently experimental and is not required by the runtime trust pipeline.
-
----
-
-# Backend Setup
-
-## 1. Enter the backend directory
-
-```bash
-cd backend
-```
-
-## 2. Create a virtual environment
-
-```bash
-python -m venv .venv
-```
-
-## 3. Activate the virtual environment
-
-### Windows PowerShell
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-### macOS/Linux
-
-```bash
-source .venv/bin/activate
-```
-
-## 4. Install dependencies
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-## 5. Configure environment variables
-
-Copy `.env.example` to `.env`.
-
-Configure the required services:
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_backend_supabase_key
-
-GEMINI_API_KEY=your_gemini_api_key
-
-MOUSER_API_KEY=your_mouser_api_key
-```
-
-> Never commit `.env` or expose backend credentials in ESP32 firmware or frontend code.
-
-## 6. Start the API
-
-```bash
-python -m uvicorn app.main:app --reload
-```
-
-The API will be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-# ESP32 / LAN Setup
-
-The ESP32 cannot access the FastAPI server using `127.0.0.1`, because that address refers to the ESP32 itself from its perspective.
-
-Start FastAPI on all network interfaces:
-
-```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Find the backend machine's local IPv4 address on Windows:
-
-```powershell
-ipconfig
-```
-
-Configure the ESP32 telemetry endpoint using that address:
-
-```text
-http://192.168.1.100:8000/api/telemetry
-```
-
-Replace `192.168.1.100` with the actual IPv4 address of the machine running PulseTrust_.
-
-The ESP32 and backend machine must be reachable over the same network.
-
-> Your operating system firewall may need to allow incoming connections on port `8000`.
-
----
-
-# API
-
-| Method | Endpoint | Description |
+| Method | Path | Behavior |
 |---|---|---|
-| `GET` | `/` | API status and project metadata |
-| `GET` | `/health` | Backend/database health |
-| `POST` | `/api/telemetry` | Store a telemetry reading |
-| `GET` | `/api/telemetry` | Retrieve telemetry history |
-| `GET` | `/api/telemetry/latest` | Retrieve latest telemetry |
-| `GET` | `/api/trust/latest` | Calculate trust from live stored telemetry |
-| `GET` | `/api/trust/explain` | Trust result with Gemini-assisted explanation |
-| `GET` | `/api/trust/demo/normal` | Simulate normal operation |
-| `GET` | `/api/trust/demo/sensor-failure` | Simulate a faulty/inconsistent sensor |
-| `GET` | `/api/trust/demo/real-event` | Simulate a genuine corroborated process event |
+| GET | `/` | Project metadata and API status |
+| GET | `/health` | Health response and `database_configured` flag; no database connectivity probe |
+| POST | `/api/telemetry` | Validate and store a reading; HTTP 201 on success |
+| GET | `/api/telemetry` | Recent readings, newest first; optional `device_id`, `limit` defaults to 50 and has a maximum of 500 |
+| GET | `/api/telemetry/latest` | Latest reading; optional `device_id`; HTTP 404 when empty |
+| GET | `/api/trust/latest` | Temperature trust analysis; optional `device_id` |
+| GET | `/api/trust/explain` | Trust result plus Gemini interpretation; optional `device_id` |
+| GET | `/api/trust/demo/{scenario}` | Backend-generated simulation; no database history required |
 
-`GET /api/telemetry` supports optional `device_id` and `limit` query parameters.
+Trust endpoints retrieve up to 100 recent rows and require at least five valid temperatures for each sensor. They return HTTP 404 when there is no telemetry and HTTP 400 when history is insufficient. Use `device_id` when monitoring multiple devices: unfiltered trust queries can combine rows from different devices. The dashboard filters its trust request to match the latest telemetry's device.
 
----
+Live trust responses include `mode: "LIVE"`, `device_id`, `trust_score`, `state`, `sensor_1`, `sensor_2`, `agreement`, `corroborated_event`, and `reasons`. The `agreement` object contains `difference`, `agreement_score`, and `agrees`.
 
-# Web Dashboard
+The explanation endpoint returns `trust` and `ai_reasoning` objects. The latter contains a summary, sensor assessment, process assessment, and recommended action when available.
 
-PulseTrust_ includes an interactive web dashboard for visualizing live telemetry, sensor trust, anomaly evidence, and machine state.
+## Trust engine
 
-The dashboard provides:
+1. Extract six temperature-history features: normalized value, rate of change, rolling mean, rolling standard deviation, deviation from baseline, and stuck score.
+2. Load the committed Isolation Forest model and evaluate each temperature sensor independently.
+3. Compare the latest temperatures. The default agreement tolerance is 1 degree Celsius; agreement confidence declines beyond that tolerance.
+4. Start each sensor at 100, subtract 20 for anomalous behavior, and apply disagreement penalties using the behavioral evidence to assign responsibility where possible.
+5. If both sensors are anomalous but agree, restore 15 points per sensor and flag a corroborated event.
+6. Clamp each sensor score to 0-100 and average them to obtain overall trust.
 
-- Overall trust score and trust state
-- Digital twin visualization of the monitored fan
-- Live temperature, RPM, electrical, and vibration telemetry
-- Isolation Forest anomaly evidence
-- Sensor-validation and trust evidence
-- Trust-score breakdown
-- Human-readable decision explanations
-- Historical telemetry charts
-- Machine-state timeline
-- Expandable technical diagnostics
-- Live and simulation operating modes
+| Overall score | State |
+|---|---|
+| 80-100 | `TRUSTED` |
+| 50 to less than 80 | `DEGRADED` |
+| Below 50 | `UNTRUSTED` |
 
-The frontend communicates with the FastAPI backend and presents trust-engine output separately from raw sensor telemetry.
+These are heuristic evidence scores, not calibrated probabilities. High trust means the measurements may be credible; it does not mean the physical process is safe.
 
-## Frontend Structure
+The model is stored at `backend/models/temperature_isolation_forest.joblib`. Loading and training-output paths are resolved relative to backend source, independent of the process working directory. The committed model uses scikit-learn 1.9.1, which is pinned in the runtime requirements. The synthetic-baseline training utilities are provided for development; deployment does not retrain or replace the model.
 
-```text
-frontend/
-├── index.html
-├── styles.css
-└── script.js
+## Simulation scenarios
+
+The backend exposes three deterministic scenario inputs:
+
+| Scenario | Endpoint | Intended demonstration |
+|---|---|---|
+| Normal | `/api/trust/demo/normal` | Similar readings from both sensors |
+| Sensor failure | `/api/trust/demo/sensor-failure` | One temperature jumps while the other remains near baseline |
+| Real event | `/api/trust/demo/real-event` | Both temperatures rise together |
+
+Open an endpoint in the browser or invoke it through `/docs`. Results use the existing model and scoring logic and include `mode: "SIMULATION"` and `scenario`. They are not stored as live sensor telemetry. The normal startup requirements, including Gemini client initialization, still apply.
+
+The frontend retains scenario controls for its internal demo mode, but currently starts in live mode and does not automatically switch to simulation when disconnected. Use the API endpoints to exercise scenarios without hardware.
+
+## AWS App Runner deployment
+
+The backend has source-deployment configuration in [backend/apprunner.yaml](backend/apprunner.yaml). Full operational notes are in [backend/DEPLOYMENT.md](backend/DEPLOYMENT.md).
+
+| App Runner setting | Exact value |
+|---|---|
+| Repository source directory | `/backend` |
+| Configuration source | Use a configuration file |
+| Configuration file | `apprunner.yaml` in the source directory |
+| Runtime | Python 3.11 (`python311`) |
+| Build command | `python3 -m compileall -q app start.py` |
+| Pre-run command 1 | `pip3 install --no-cache-dir -r requirements.txt` |
+| Pre-run command 2 | `pip3 check` |
+| Start command | `python3 start.py` |
+| Application | `app.main:app` |
+| Bind address | `0.0.0.0` |
+| Network port | `8080`, exported as `PORT` |
+| Health check | HTTP `/health`, configured in the service console |
+
+The pre-run dependency installation follows [AWS's Python 3.11 runtime instructions](https://docs.aws.amazon.com/apprunner/latest/dg/service-source-code-python.html): global packages installed only during the build stage are not preserved by the revised build process.
+
+Configure runtime secrets through App Runner's Secrets Manager or SSM references and give the service instance role access to them. Set `SUPABASE_URL`, `SUPABASE_KEY`, and `GEMINI_API_KEY`; add component-integration credentials when needed. The compile-only build does not need secrets.
+
+Keep the committed model in the deployment source. The API can start without the sibling `frontend` directory; it serves `/dashboard` only when that directory exists. Supabase and Gemini remain external services in the existing architecture.
+
+CORS currently allows wildcard origins and GET/POST requests with credentials disabled for the initial hackathon deployment. CORS is not authentication: the current API has no authentication layer. Review access controls before exposing real telemetry or ingestion beyond the intended demo audience.
+
+### Deployment verification status
+
+Local tests, compilation, dependency consistency, YAML parsing, and a Linux CPython 3.11 dependency-resolution dry run have passed. **An AWS deployment and actual Python 3.11 model inference have not been verified.**
+
+The model's scikit-learn 1.9.1 Linux wheels require glibc 2.27 or newer. The successful dependency dry run included manylinux 2.28 wheels; compatibility with the selected managed runtime image remains to be checked. An older image may attempt a source build. Do not downgrade scikit-learn or retrain the model solely to bypass deployment errors without validating compatibility and output behavior.
+
+The future Amplify frontend also needs explicit API URL configuration; CORS preparation alone does not connect it to App Runner.
+
+## Checks and tests
+
+From `backend`, with the virtual environment active:
+
+```sh
+python -m unittest discover -s tests -v
+python -m pip check
+python -m compileall -q app start.py
 ```
 
-The dashboard uses vanilla HTML, CSS, and JavaScript, keeping the visualization layer lightweight and independent of a frontend framework.
+The five deployment tests cover the default/custom port, model inference from another working directory, metadata/health/simulation endpoints, Amplify-style CORS preflights, and startup without the frontend directory. They mock Gemini client construction and do not require live database access or real credentials.
 
-## Running the Dashboard
+For live integration verification after configuring services, check `/api/telemetry/latest`, then `/api/trust/latest?device_id=<your-device-id>`. Test `/api/trust/explain` separately if you want to verify Gemini requests. `/health` alone does not validate either external service.
 
-The backend also serves the dashboard directly at **http://127.0.0.1:8000/dashboard/**.
-Start it from the repository root with:
+## Troubleshooting
 
-```powershell
-cd backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
+| Symptom | What to check |
+|---|---|
+| Gemini credential error during startup | Add `GEMINI_API_KEY`; run from `backend` for local `.env` loading. |
+| Database configured is true, but requests fail | The health flag only checks that settings exist. Verify Supabase connectivity, credentials, table schema, and permissions. |
+| No readings / HTTP 404 | Send telemetry to the correct backend and check the device filter. |
+| Trust endpoint returns HTTP 400 | Supply at least five valid temperature readings per sensor for the selected device. |
+| Database ingestion fails after an older installation | Apply the `hall_raw` migration and verify all required fields. |
+| Dashboard says disconnected | Confirm the server is running and check the API URL. Same-origin `/dashboard/` follows the backend port; standalone hosting currently targets port 8000. |
+| Trust panels show unavailable while telemetry works | Check `/api/trust/latest` directly; some optional dashboard fields are not emitted by the current backend. |
+| Agreement badges show a dash | The frontend currently expects a boolean while the API returns an agreement object. Inspect `agreement.agrees` in the raw response. |
+| Model cannot load | Verify the committed model exists and the installed scikit-learn version matches requirements. Do not regenerate it as an automatic repair. |
+| App Runner cannot install scientific dependencies | Check Python version and Linux wheel/glibc compatibility; see the deployment verification notes. |
+| ESP32 cannot reach the backend | Use the machine's LAN IP, the actual server port, and an appropriate firewall rule. |
 
-This uses the same origin for dashboard assets and API requests. Live readings
-are polled every five seconds and connection failures are retried automatically.
-If trust analysis is unavailable, raw telemetry remains visible. When using a
-separate local frontend server, the dashboard connects to port 8000 on the same
-hostname; local development origins on ports 5500, 5501, 3000, and 5173 are allowed.
+## Prototype scope
 
-Start the backend:
+PulseTrust_ is a hackathon prototype, not a certified industrial safety system. Temperature sensors are the current focus of learned trust inference; other measurements are collected and visualized. The synthetic training baseline, heuristic scores, incomplete dashboard field mappings, and experimental component/datasheet tools are development constraints.
 
-```bash
-cd backend
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+API routes report telemetry and trust evidence; they do not provide a general-purpose actuator command API. Future work includes broader sensor coverage, validated training data, complete dashboard/API mappings, deployment verification, and access controls for wider use.
 
-Then serve the frontend from its directory:
+## License
 
-```bash
-cd frontend
-python -m http.server 5500
-```
-
-Open:
-
-```text
-http://127.0.0.1:5500
-```
-
-The frontend API base URL can be configured in `script.js`.
-
----
-
-# Simulation Mode
-
-PulseTrust_ includes explicitly labelled simulation endpoints for demonstrating trust behavior without requiring the physical hardware to be connected.
-
-### Normal Operation
-
-```text
-/api/trust/demo/normal
-```
-
-Expected behavior:
-
-```text
-Sensors behave normally
-Sensors agree
-        ↓
-TRUSTED
-```
-
-### Sensor Failure
-
-```text
-/api/trust/demo/sensor-failure
-```
-
-Expected behavior:
-
-```text
-One sensor becomes anomalous
-Sensors disagree
-        ↓
-DEGRADED
-```
-
-### Genuine Process Event
-
-```text
-/api/trust/demo/real-event
-```
-
-Expected behavior:
-
-```text
-Both sensors become anomalous
-Both report the same physical change
-        ↓
-Corroborated Event
-        ↓
-Sensors remain highly trusted
-```
-
-Simulation responses contain:
-
-```json
-{
-  "mode": "SIMULATION"
-}
-```
-
-Live trust responses contain:
-
-```json
-{
-  "mode": "LIVE"
-}
-```
-
-This keeps simulated demonstration data clearly separated from real telemetry.
-
----
-
-# Database
-
-Telemetry is stored in the Supabase `sensor_readings` table.
-
-Each reading contains the sensor measurements, actuator state, device identifier, and server timestamp required for historical analysis and visualization.
-
----
-
-# Current Status
-
-The PulseTrust_ prototype currently supports:
-
-- Real physical sensor acquisition
-- ESP32 Wi-Fi telemetry transmission
-- Redundant temperature sensing
-- RPM sensing
-- Electrical telemetry
-- Motion/acceleration monitoring
-- FastAPI telemetry ingestion
-- Supabase historical telemetry storage
-- Feature extraction from sensor history
-- Isolation Forest anomaly detection
-- Stuck-sensor detection evidence
-- Redundant sensor agreement analysis
-- Cross-sensor corroboration
-- Per-sensor trust scoring
-- Overall trust states
-- Live trust analysis
-- Simulation scenarios
-- Gemini-assisted trust explanations
-- Component metadata lookup
-- Interactive web dashboard
-- Digital twin visualization
-- Live telemetry visualization
-- Historical telemetry charts
-- Trust evidence visualization
-- Trust-score breakdown
-- Machine-state timeline
-- Expandable technical diagnostics
-- Physical fan, OLED, LED, and buzzer hardware
-
----
-
-# Prototype Scope
-
-The current implementation is a **hackathon prototype**, not a certified industrial safety system.
-
-The Isolation Forest model currently demonstrates behavioral trust analysis primarily on temperature telemetry and is bootstrapped using synthetic baseline data.
-
-Trust scores are heuristic evidence scores rather than calibrated failure probabilities.
-
-The architecture is designed so that additional sensor types, historical datasets, specification validation, cloud infrastructure, and more advanced cross-sensor reasoning can be incorporated without changing the core **Trust Before Action** principle.
-
----
-
-# Project Direction
-
-Modern autonomous systems increasingly depend on physical sensors to decide when to start, stop, cool, accelerate, alert, isolate, or otherwise interact with the real world.
-
-PulseTrust_ asks a question that should come first:
-
-> **Can the system trust the measurement it is about to act on?**
-
-The long-term goal is to provide a reusable sensor-trust layer between physical telemetry and autonomous decision systems:
-
-```text
-Physical World
-      ↓
-   Sensors
-      ↓
-  PulseTrust_
-      ↓
-Trusted Evidence
-      ↓
-Autonomous System
-```
-
-**Trust Before Action.**
+This project is distributed under the [MIT License](LICENSE).
