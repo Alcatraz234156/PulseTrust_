@@ -1568,26 +1568,44 @@ function initDemoButtons() {
    ║  MASTER RENDER                                           ║
    ╚══════════════════════════════════════════════════════════╝ */
 
-function renderSnapshot() {
-  const data = appState.data;
-  const modeEl = document.getElementById('snap-mode');
-  const agreementEl = document.getElementById('snap-agreement');
-  const eventEl = document.getElementById('snap-event');
-  if (modeEl) modeEl.textContent = appState.mode === 'demo' ? 'SIMULATION' : 'LIVE';
-  if (agreementEl) {
-    if (data?.agreement === true) agreementEl.textContent = 'AGREE';
-    else if (data?.agreement === false) agreementEl.textContent = 'DISAGREE';
-    else {
-      const a = Number(data?.telemetry?.temp_1), b = Number(data?.telemetry?.temp_2);
-      agreementEl.textContent = Number.isFinite(a) && Number.isFinite(b) ? (Math.abs(a-b) <= 1 ? 'AGREE' : 'DISAGREE') : '—';
-    }
-  }
-  if (eventEl) eventEl.textContent = data?.corroborated_event === true ? 'CORROBORATED' : data?.corroborated_event === false ? 'NONE' : '—';
+function renderCommandCenter() {
+  const d = appState.data;
+  if (!d) return;
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  const t1 = d.telemetry?.temp_1;
+  const t2 = d.telemetry?.temp_2;
+  const s1 = d.sensor_1 ?? appState.lastRawPayload?.sensor_1 ?? appState.lastRawPayload?.trust?.sensor_1 ?? {};
+  const s2 = d.sensor_2 ?? appState.lastRawPayload?.sensor_2 ?? appState.lastRawPayload?.trust?.sensor_2 ?? {};
+
+  const agreement = d.agreement ?? appState.lastRawPayload?.agreement ?? appState.lastRawPayload?.trust?.agreement;
+  const corroborated = d.corroborated_event ?? appState.lastRawPayload?.corroborated_event ?? appState.lastRawPayload?.trust?.corroborated_event;
+  const anomalous = Boolean(d.anomaly_summary?.is_anomaly);
+
+  setText('cmd-trust', d.state ?? '—');
+  setText('cmd-agreement', agreement === true ? 'AGREE' : agreement === false ? 'DISAGREE' : '—');
+  setText('cmd-event', corroborated === true ? 'CORROBORATED' : corroborated === false ? 'NONE' : '—');
+  setText('cmd-anomaly', anomalous ? 'DETECTED' : 'CLEAR');
+
+  setText('sensor1-value', t1 != null ? Number(t1).toFixed(2) : '—');
+  setText('sensor2-value', t2 != null ? Number(t2).toFixed(2) : '—');
+  setText('sensor1-trust', s1.trust_score != null ? `${Number(s1.trust_score).toFixed(0)}/100` : '—');
+  setText('sensor2-trust', s2.trust_score != null ? `${Number(s2.trust_score).toFixed(0)}/100` : '—');
+  setText('sensor1-anomaly', s1.anomaly === true ? 'ANOMALY' : s1.anomaly === false ? 'NORMAL' : '—');
+  setText('sensor2-anomaly', s2.anomaly === true ? 'ANOMALY' : s2.anomaly === false ? 'NORMAL' : '—');
+  setText('pair-agreement', agreement === true ? '✓ AGREE' : agreement === false ? '✕ DISAGREE' : '—');
+
+  if (t1 != null && t2 != null) setText('pair-delta', `Δ ${Math.abs(Number(t1)-Number(t2)).toFixed(2)} °C`);
+  else setText('pair-delta', 'Δ —');
 }
 
 function renderAll() {
   renderHeader();
-  renderSnapshot();
+  renderCommandCenter();
   renderHero();
   renderDigitalTwin();
   renderTelemetry();

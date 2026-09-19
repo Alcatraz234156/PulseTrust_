@@ -109,19 +109,24 @@
 
         </div><!-- /hero-card -->
       </div>
-    </section>
+    
+          <aside class="command-assessment" aria-label="Current assessment">
+            <div class="assessment-head">
+              <span class="assessment-eyebrow">Current assessment</span>
+              <span class="assessment-live"><i></i> ENGINE ONLINE</span>
+            </div>
+            <div class="assessment-grid">
+              <div><span>Sensor trust</span><strong id="cmd-trust">—</strong></div>
+              <div><span>Agreement</span><strong id="cmd-agreement">—</strong></div>
+              <div><span>Event</span><strong id="cmd-event">—</strong></div>
+              <div><span>Anomaly</span><strong id="cmd-anomaly">—</strong></div>
+            </div>
+            <div class="assessment-pipeline">
+              <span>Telemetry</span><b>→</b><span>Features</span><b>→</b><span>IF</span><b>→</b><span>Trust</span>
+            </div>
+          </aside>
 
-    <!-- ── SYSTEM SNAPSHOT ───────────────────────────────────────────── -->
-    <section class="snapshot-section" aria-label="PulseTrust system snapshot">
-      <div class="page-wrapper">
-        <div class="snapshot-grid reveal">
-          <div class="snapshot-item"><span class="snapshot-kicker">Operating mode</span><strong class="snapshot-value" id="snap-mode">—</strong><span class="snapshot-note">runtime source</span></div>
-          <div class="snapshot-item"><span class="snapshot-kicker">Sensor agreement</span><strong class="snapshot-value" id="snap-agreement">—</strong><span class="snapshot-note">redundant temperature pair</span></div>
-          <div class="snapshot-item"><span class="snapshot-kicker">Event evidence</span><strong class="snapshot-value" id="snap-event">—</strong><span class="snapshot-note">cross-sensor corroboration</span></div>
-          <div class="snapshot-item snapshot-item--pipeline"><span class="snapshot-kicker">Trust pipeline</span><div class="pipeline-mini"><span>Telemetry</span><i>→</i><span>Features</span><i>→</i><span>IF</span><i>→</i><span>Trust</span></div><span class="snapshot-note">deterministic core online</span></div>
-        </div>
-      </div>
-    </section>
+</section>
 
     <!-- ── LIVE TELEMETRY ─────────────────────────────────────────────── -->
     <section class="section section--ash" id="section-telemetry" aria-labelledby="tel-heading">
@@ -221,7 +226,7 @@
             </div>
             <div class="tel-primary">
               <span class="tel-value" id="tel-vibration">—</span>
-              <span class="tel-unit">g</span>
+              <span class="tel-unit">m/s²</span>
             </div>
             <div class="tel-secondary">
               <div class="tel-row">
@@ -234,17 +239,30 @@
       </div>
     </section>
 
-    <!-- ── TRUST LOGIC ──────────────────────────────────────────────── -->
-    <section class="logic-section section--ash" aria-label="Trust logic">
+
+    <section class="sensor-pair-section section--ash" aria-label="Redundant sensor trust">
       <div class="page-wrapper">
-        <div class="logic-band reveal">
-          <div><span class="logic-eyebrow">Trust before action</span><p class="logic-copy">An unusual reading can still be trustworthy. PulseTrust_ separates <strong>sensor reliability</strong> from <strong>process abnormality</strong>.</p></div>
-          <div class="logic-flow" aria-hidden="true"><span>Behaviour</span><b>+</b><span>Agreement</span><b>+</b><span>Corroboration</span><b>→</b><span class="logic-result">Trust</span></div>
+        <div class="sensor-pair-grid reveal">
+          <article class="sensor-trust-card">
+            <div class="sensor-card-top"><span>TEMP SENSOR 01</span><span class="sensor-dot"></span></div>
+            <div class="sensor-card-main"><strong id="sensor1-value">—</strong><small>°C</small></div>
+            <div class="sensor-card-foot"><span>Trust</span><strong id="sensor1-trust">—</strong><span id="sensor1-anomaly" class="micro-pill">WAITING</span></div>
+          </article>
+          <div class="agreement-bridge">
+            <span class="bridge-line"></span>
+            <div class="bridge-core"><small>REDUNDANCY CHECK</small><strong id="pair-agreement">—</strong><em id="pair-delta">Δ —</em></div>
+            <span class="bridge-line"></span>
+          </div>
+          <article class="sensor-trust-card">
+            <div class="sensor-card-top"><span>TEMP SENSOR 02</span><span class="sensor-dot"></span></div>
+            <div class="sensor-card-main"><strong id="sensor2-value">—</strong><small>°C</small></div>
+            <div class="sensor-card-foot"><span>Trust</span><strong id="sensor2-trust">—</strong><span id="sensor2-anomaly" class="micro-pill">WAITING</span></div>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- ── SENSOR TRUST EVIDENCE ─────────────────────────────────────── -->
+    <!-- ── WHY DO WE TRUST THIS MACHINE? ─────────────────────────────── -->
     <section class="section section--ash" id="section-evidence" aria-labelledby="evidence-heading">
       <div class="page-wrapper">
         <h2 class="section-heading reveal" id="evidence-heading">Sensor trust evidence</h2>
@@ -444,7 +462,7 @@
               <dd class="technical-value">Deterministic trust + cross-sensor evidence</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Trust states</dt>
+              <dt class="technical-label">Temporal persistence</dt>
               <dd class="technical-value">TRUSTED · DEGRADED · UNTRUSTED</dd>
             </div>
             <div class="technical-row">
