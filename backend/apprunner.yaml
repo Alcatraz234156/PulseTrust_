@@ -1,0 +1,16 @@
+version: 1.0
+runtime: python311
+build:
+  commands:
+    build:
+      - python3 -m compileall -q app start.py
+run:
+  runtime-version: "3.11"
+  # Python 3.11's revised build discards global build-stage installations.
+  pre-run:
+    - pip3 install --no-cache-dir -r requirements.txt
+    - pip3 check
+  command: python3 start.py
+  network:
+    port: 8080
+    env: PORT

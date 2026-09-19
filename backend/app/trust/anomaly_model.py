@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import joblib
 import numpy as np
 
@@ -9,7 +10,7 @@ from app.trust.training_data import FEATURE_NAMES
 from app.trust.synthetic_data import generate_temperature_baseline
 
 
-MODEL_DIR = "models"
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 
 def build_feature_windows(

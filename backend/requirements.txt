@@ -39,3 +39,13 @@ uvicorn==0.53.0
 watchfiles==1.2.0
 websockets==15.0.1
 yarl==1.25.1
+
+# Trust inference: retain the scikit-learn version used by the committed model.
+scikit-learn==1.9.1
+joblib==1.6.0
+# Let Python 3.11 select compatible NumPy/SciPy wheels.
+numpy>=1.26.4,<3
+scipy>=1.11.4,<2
+google-genai==2.24.0
+requests==2.34.2
+pypdf==6.19.0

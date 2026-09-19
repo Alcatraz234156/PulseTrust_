@@ -19,21 +19,18 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Support the local frontend development servers; the bundled dashboard is same-origin.
+# Initial hackathon deployment: allow Amplify origins without browser credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5500", "http://127.0.0.1:5500",
-        "http://localhost:5501", "http://127.0.0.1:5501",
-        "http://localhost:3000", "http://127.0.0.1:3000",
-        "http://localhost:5173", "http://127.0.0.1:5173",
-    ],
-    allow_methods=["GET"],
-    allow_headers=["Accept", "Content-Type"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
-app.mount("/dashboard", StaticFiles(directory=frontend_dir, html=True), name="dashboard")
+if frontend_dir.is_dir():
+    app.mount("/dashboard", StaticFiles(directory=frontend_dir, html=True), name="dashboard")
 
 
 @app.get("/", tags=["System"])

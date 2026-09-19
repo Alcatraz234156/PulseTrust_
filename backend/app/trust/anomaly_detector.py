@@ -1,10 +1,11 @@
 import joblib
+from pathlib import Path
 
 from app.trust.feature_engine import extract_features
 from app.trust.training_data import FEATURE_NAMES
 
 
-MODEL_PATH = "models/temperature_isolation_forest.joblib"
+MODEL_PATH = Path(__file__).resolve().parents[2] / "models" / "temperature_isolation_forest.joblib"
 
 
 def detect_anomaly(values: list[float]) -> dict:
