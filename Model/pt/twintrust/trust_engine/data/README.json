@@ -1,9 +1,0 @@
-{
-  "description": "Synthetic TrustTwin telemetry datasets for FeatureExtractor testing. Synthetic data only.",
-  "scenarios": {
-    "normal": "normal_data.json",
-    "degradation": "degradation_data.json",
-    "stall": "stall_data.json",
-    "fan_off": "fan_off_data.json"
-  }
-}
