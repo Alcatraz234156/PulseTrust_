@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PulseTrust local Build It demonstration; use sam local, not sam deploy.
+Resources:
+  TrustAnalysis:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures: [x86_64]
+      MemorySize: 1024
+      Timeout: 60
+      Environment:
+        Variables:
+          PULSETRUST_LOCAL_ARCHIVE: '1'
+      Events:
+        Analyze:
+          Type: Api
+          Properties:
+            Path: /trust
+            Method: post
+    Metadata:
+      DockerContext: ..
+      Dockerfile: local-aws/Dockerfile
+      DockerTag: local

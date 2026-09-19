@@ -1,4 +1,4 @@
-﻿# PulseTrust_
+# PulseTrust_
 
 > **Trust Before Action.**
 
@@ -8,6 +8,7 @@ PulseTrust_ is an industrial sensor-trust and machine-monitoring prototype. It c
 
 ## Contents
 
+- [Build It: local AWS demo](#build-it-local-aws-demo)
 - [Architecture](#architecture)
 - [Repository layout](#repository-layout)
 - [Local setup](#local-setup)
@@ -20,6 +21,40 @@ PulseTrust_ is an industrial sensor-trust and machine-monitoring prototype. It c
 - [Checks and tests](#checks-and-tests)
 - [Troubleshooting](#troubleshooting)
 - [Prototype scope](#prototype-scope)
+
+## Build It: local AWS demo
+
+PulseTrust now targets the hackathon's **Build It** track with AWS SAM CLI and
+LocalStack running locally. No AWS cloud account, billing setup, or real AWS
+credentials are required. The existing application continues to use FastAPI,
+Supabase, Gemini, and the committed Isolation Forest model.
+
+Install Docker Desktop (Linux containers/WSL 2) and AWS SAM CLI, then run from the
+repository root in PowerShell:
+
+```powershell
+.\local-aws\start.ps1
+```
+
+After SAM starts listening, invoke from a second terminal:
+
+```powershell
+.\local-aws\invoke.ps1 -Scenario normal
+```
+
+SAM runs a small Lambda-compatible adapter that calls the existing trust engine.
+LocalStack S3 stores the returned evidence, and the invocation script checks the
+archived request ID. The standalone demo needs no Supabase or Gemini keys.
+`GET /api/aws/status` in the running FastAPI application exposes local listener
+status and the latest archived result; no frontend changes are included.
+
+See [local-aws/README.md](local-aws/README.md) for exact Windows prerequisites,
+telemetry input, the other scenarios, shutdown, tests, and verification limits.
+The setup pins LocalStack Community 4.12.0 because newer images require a
+LocalStack auth token. The scripts use local SAM commands, not cloud deployment.
+Docker/SAM are absent from the implementation environment, so the container demo
+has not yet been verified end to end. Existing App Runner files remain an optional
+future **Ship It** path.
 
 ## Architecture
 
@@ -62,6 +97,7 @@ PulseTrust_/
 |   |-- start.py                    # PORT-aware server launcher
 |   |-- apprunner.yaml
 |   `-- DEPLOYMENT.md
+|-- local-aws/                      # SAM template, Docker setup, PowerShell demo
 |-- frontend/
 |   |-- index.html
 |   |-- styles.css
@@ -233,6 +269,7 @@ Use `ipconfig` on Windows to find the machine's LAN address. The ESP32 and backe
 | Method | Path | Behavior |
 |---|---|---|
 | GET | `/` | Project metadata and API status |
+| GET | `/api/aws/status` | Local SAM/LocalStack reachability and last invocation evidence |
 | GET | `/health` | Health response and `database_configured` flag; no database connectivity probe |
 | POST | `/api/telemetry` | Validate and store a reading; HTTP 201 on success |
 | GET | `/api/telemetry` | Recent readings, newest first; optional `device_id`, `limit` defaults to 50 and has a maximum of 500 |
@@ -282,6 +319,8 @@ The frontend retains scenario controls for its internal demo mode, but currently
 
 ## AWS App Runner deployment
 
+Optional future Ship It path; the current Build It demo uses local SAM and LocalStack above.
+
 The backend has source-deployment configuration in [backend/apprunner.yaml](backend/apprunner.yaml). Full operational notes are in [backend/DEPLOYMENT.md](backend/DEPLOYMENT.md).
 
 | App Runner setting | Exact value |
@@ -325,7 +364,9 @@ python -m pip check
 python -m compileall -q app start.py
 ```
 
-The five deployment tests cover the default/custom port, model inference from another working directory, metadata/health/simulation endpoints, Amplify-style CORS preflights, and startup without the frontend directory. They mock Gemini client construction and do not require live database access or real credentials.
+The five original deployment tests cover the default/custom port, model inference from another working directory, metadata/health/simulation endpoints, Amplify-style CORS preflights, and startup without the frontend directory. They mock Gemini client construction and do not require live database access or real credentials.
+
+Seven additional local AWS tests check adapter/API equivalence, telemetry input, validation, archive writes and failures, status probes, and isolated imports. Network calls are mocked; use the two local demo commands to verify actual containers.
 
 For live integration verification after configuring services, check `/api/telemetry/latest`, then `/api/trust/latest?device_id=<your-device-id>`. Test `/api/trust/explain` separately if you want to verify Gemini requests. `/health` alone does not validate either external service.
 

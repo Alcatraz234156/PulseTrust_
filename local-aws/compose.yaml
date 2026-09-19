@@ -1,0 +1,14 @@
+services:
+  localstack:
+    # Legacy Community image: no LocalStack login/token or AWS account.
+    image: localstack/localstack:4.12.0
+    ports:
+      - "127.0.0.1:4566:4566"
+    environment:
+      SERVICES: s3
+      EAGER_SERVICE_LOADING: '1'
+    networks:
+      - local-aws
+networks:
+  local-aws:
+    name: pulsetrust-local-aws

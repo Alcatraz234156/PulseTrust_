@@ -1,0 +1,11 @@
+**
+!backend/
+!backend/app/
+!backend/app/*.py
+!backend/app/trust/
+!backend/app/trust/*.py
+!backend/models/
+!backend/models/temperature_isolation_forest.joblib
+!local-aws/
+!local-aws/Dockerfile
+!local-aws/requirements.txt

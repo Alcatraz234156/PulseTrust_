@@ -1,4 +1,3 @@
-from app.database import get_sensor_readings
 from app.trust.feature_engine import extract_features
 
 
@@ -18,6 +17,8 @@ def build_training_data(
     limit: int = 500,
     window_size: int = 20
 ) -> list[list[float]]:
+
+    from app.database import get_sensor_readings
 
     rows = get_sensor_readings(
         device_id=device_id,
