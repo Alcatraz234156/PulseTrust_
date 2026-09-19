@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseTrust · TrustTwin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── AMBIENT BACKGROUND ──────────────────────────────────────────── -->
+  <div class="background-layer" aria-hidden="true">
+    <div class="background-grid"></div>
+    <div class="background-wash background-wash--a"></div>
+    <div class="background-wash background-wash--b"></div>
+  </div>
+
+  <!-- ── HEADER ──────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="page-wrapper site-header__inner">
+
+      <div class="site-header__brand">
+        <span class="wordmark">PulseTrust</span>
+        <span class="sub-mark">TrustTwin</span>
+      </div>
+
+      <div class="site-header__controls">
+
+        <!-- Demo pill — visible only in demo mode -->
+        <div class="demo-pill" id="demo-pill" hidden>
+          <span class="demo-pill__label">DEMO MODE — Simulated Data</span>
+          <div class="demo-scenarios" id="demo-scenarios" role="group" aria-label="Demo scenarios">
+            <button class="btn-scenario btn--cta"   data-scenario="HEALTHY"   aria-pressed="true">Healthy</button>
+            <button class="btn-scenario btn--ghost"  data-scenario="ANOMALY"   aria-pressed="false">Anomaly</button>
+            <button class="btn-scenario btn--ghost"  data-scenario="DEGRADING" aria-pressed="false">Degrading</button>
+            <button class="btn-scenario btn--ghost"  data-scenario="FAULT"     aria-pressed="false">Fault</button>
+          </div>
+        </div>
+
+        <!-- Status pill — always visible -->
+        <div class="status-pill" id="status-pill" aria-live="polite" aria-label="Connection status">
+          <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+          <span class="status-device" id="status-device">—</span>
+          <span class="status-sep" aria-hidden="true">·</span>
+          <span class="status-updated" id="status-updated">—</span>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ────────────────────────────────────────────────────────── -->
+  <main id="main-content">
+
+    <!-- ── HERO: Trust Score + Digital Twin ──────────────────────────── -->
+    <section class="section section--ash" id="section-hero" aria-labelledby="hero-heading">
+      <div class="page-wrapper">
+        <h1 id="hero-heading" class="sr-only">Machine Trust Status</h1>
+        <div class="card card--asymmetric hero-card reveal">
+
+          <!-- Left: Trust Score -->
+          <div class="hero-trust">
+
+            <!-- Available state (Trust Engine has responded) -->
+            <div id="hero-available" hidden>
+              <div class="hero-ring-wrap">
+                <svg class="trust-ring" id="trust-ring" viewBox="0 0 160 160"
+                     role="img" aria-labelledby="ring-title">
+                  <title id="ring-title">Trust score progress ring</title>
+                  <circle class="trust-ring__track"    cx="80" cy="80" r="68" />
+                  <circle class="trust-ring__progress" cx="80" cy="80" r="68" id="trust-ring-progress" />
+                </svg>
+                <div class="hero-ring-label">
+                  <span class="trust-score-number" id="trust-score-number">—</span>
+                </div>
+              </div>
+              <p class="trust-score-caption">TRUST SCORE</p>
+              <div class="trust-state-row">
+                <span class="state-dot" id="state-dot" aria-hidden="true"></span>
+                <span class="state-label" id="state-label">—</span>
+              </div>
+              <div class="decision-badge" id="decision-badge" aria-label="Decision">—</div>
+            </div>
+
+            <!-- Unavailable state (Trust Engine not yet provided by backend) -->
+            <div id="hero-unavailable">
+              <div class="trust-unavail-dash" aria-hidden="true">—</div>
+              <p class="trust-score-caption">TRUST SCORE</p>
+              <p class="trust-unavail-notice">
+                Trust Engine data not yet available from this backend.
+                Live telemetry is still being collected below.
+              </p>
+            </div>
+
+          </div><!-- /hero-trust -->
+
+          <!-- Right: Digital Twin -->
+          <div class="hero-twin">
+            <div class="twin-label-row">
+              <span class="twin-eyebrow">Digital Twin</span>
+              <span class="twin-device-id" id="twin-device-id">—</span>
+            </div>
+            <div class="twin-canvas" id="twin-canvas" aria-label="Fan machine digital twin visualization">
+              <!-- Fan SVG injected by script.js -->
+            </div>
+            <div class="twin-meta">
+              <div class="twin-rpm-display">
+                <span class="twin-rpm-value" id="twin-rpm-value">—</span>
+                <span class="twin-rpm-unit">RPM</span>
+              </div>
+              <span class="twin-fan-badge" id="twin-fan-badge">—</span>
+            </div>
+          </div><!-- /hero-twin -->
+
+        </div><!-- /hero-card -->
+      </div>
+    </section>
+
+    <!-- ── LIVE TELEMETRY ─────────────────────────────────────────────── -->
+    <section class="section section--white" id="section-telemetry" aria-labelledby="tel-heading">
+      <div class="page-wrapper">
+        <h2 class="section-heading reveal" id="tel-heading">Live Telemetry</h2>
+        <div class="telemetry-grid">
+
+          <!-- Temperature -->
+          <article class="card card--data telemetry-card reveal"
+                   data-category="temperature"
+                   role="button" tabindex="0"
+                   aria-label="Temperature — click to expand chart">
+            <div class="tel-card-header">
+              <span class="tel-card-title">Temperature</span>
+              <span class="tel-expand-hint" aria-hidden="true">↗</span>
+            </div>
+            <div class="tel-primary">
+              <span class="tel-value" id="tel-temp-avg">—</span>
+              <span class="tel-unit">°C</span>
+              <span class="tel-sublabel">avg</span>
+            </div>
+            <div class="tel-secondary">
+              <div class="tel-row">
+                <span class="tel-row-label">Sensor 1</span>
+                <span class="tel-row-value" id="tel-temp-1">—</span>
+                <span class="tel-row-unit">°C</span>
+              </div>
+              <div class="tel-row">
+                <span class="tel-row-label">Sensor 2</span>
+                <span class="tel-row-value" id="tel-temp-2">—</span>
+                <span class="tel-row-unit">°C</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Rotation -->
+          <article class="card card--data telemetry-card reveal"
+                   data-category="rotation"
+                   role="button" tabindex="0"
+                   aria-label="Rotation — click to expand chart">
+            <div class="tel-card-header">
+              <span class="tel-card-title">Rotation</span>
+              <span class="tel-expand-hint" aria-hidden="true">↗</span>
+            </div>
+            <div class="tel-primary">
+              <span class="tel-value" id="tel-rpm">—</span>
+              <span class="tel-unit">RPM</span>
+            </div>
+            <div class="tel-secondary">
+              <div class="tel-row tel-row--diagnostic">
+                <span class="tel-row-label">Hall raw</span>
+                <span class="tel-row-value tel-diagnostic" id="tel-hall-raw">—</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Electrical -->
+          <article class="card card--data telemetry-card reveal"
+                   data-category="electrical"
+                   role="button" tabindex="0"
+                   aria-label="Electrical — click to expand chart">
+            <div class="tel-card-header">
+              <span class="tel-card-title">Electrical</span>
+              <span class="tel-expand-hint" aria-hidden="true">↗</span>
+            </div>
+            <div class="tel-primary">
+              <span class="tel-value" id="tel-power">—</span>
+              <span class="tel-unit">W</span>
+              <span class="tel-sublabel">power</span>
+            </div>
+            <div class="tel-secondary">
+              <div class="tel-row">
+                <span class="tel-row-label">Voltage</span>
+                <span class="tel-row-value" id="tel-voltage">—</span>
+                <span class="tel-row-unit">V</span>
+              </div>
+              <div class="tel-row">
+                <span class="tel-row-label">Current</span>
+                <span class="tel-row-value" id="tel-current">—</span>
+                <span class="tel-row-unit">A</span>
+              </div>
+              <div class="tel-row">
+                <span class="tel-row-label">Fan</span>
+                <span class="tel-row-value" id="tel-fan">—</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Vibration -->
+          <article class="card card--data telemetry-card reveal"
+                   data-category="vibration"
+                   role="button" tabindex="0"
+                   aria-label="Vibration — click to expand chart">
+            <div class="tel-card-header">
+              <span class="tel-card-title">Vibration</span>
+              <span class="tel-expand-hint" aria-hidden="true">↗</span>
+            </div>
+            <div class="tel-primary">
+              <span class="tel-value" id="tel-vibration">—</span>
+              <span class="tel-unit">g</span>
+            </div>
+            <div class="tel-secondary">
+              <div class="tel-row">
+                <span class="vibration-tag" id="tel-vibration-tag">—</span>
+              </div>
+            </div>
+          </article>
+
+        </div><!-- /telemetry-grid -->
+      </div>
+    </section>
+
+    <!-- ── WHY DO WE TRUST THIS MACHINE? ─────────────────────────────── -->
+    <section class="section section--ash" id="section-evidence" aria-labelledby="evidence-heading">
+      <div class="page-wrapper">
+        <h2 class="section-heading reveal" id="evidence-heading">Why Do We Trust This Machine?</h2>
+        <div class="evidence-grid">
+
+          <!-- Isolation Forest -->
+          <div class="card card--data evidence-card reveal" id="evidence-isolation">
+            <h3 class="evidence-title">Isolation Forest</h3>
+            <div class="evidence-body" id="evidence-isolation-body">
+              <p class="evidence-unavail">Awaiting Trust Engine data</p>
+            </div>
+          </div>
+
+          <!-- Rule Engine -->
+          <div class="card card--data evidence-card reveal" id="evidence-rule">
+            <h3 class="evidence-title">Rule Engine</h3>
+            <div class="evidence-body" id="evidence-rule-body">
+              <p class="evidence-unavail">Awaiting Trust Engine data</p>
+            </div>
+          </div>
+
+          <!-- Temporal Behaviour -->
+          <div class="card card--data evidence-card reveal" id="evidence-temporal">
+            <h3 class="evidence-title">Temporal Behaviour</h3>
+            <div class="evidence-body" id="evidence-temporal-body">
+              <p class="evidence-unavail">Awaiting Trust Engine data</p>
+            </div>
+          </div>
+
+        </div><!-- /evidence-grid -->
+      </div>
+    </section>
+
+    <!-- ── TRUST SCORE BREAKDOWN ──────────────────────────────────────── -->
+    <section class="section section--white" id="section-breakdown" aria-labelledby="breakdown-heading">
+      <div class="page-wrapper">
+        <h2 class="section-heading reveal" id="breakdown-heading">Trust Score Breakdown</h2>
+        <div class="card card--data breakdown-card reveal">
+
+          <!-- Unavailable state -->
+          <div id="breakdown-unavailable">
+            <p class="evidence-unavail">Trust Engine data not yet available from this backend.</p>
+          </div>
+
+          <!-- Ledger (hidden until Trust Engine responds) -->
+          <div class="breakdown-ledger" id="breakdown-ledger" hidden>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Base Trust</span>
+              <span class="breakdown-value" id="bd-base">+100</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Anomaly Penalty</span>
+              <span class="breakdown-value breakdown-value--penalty" id="bd-anomaly">0</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Warning Penalty</span>
+              <span class="breakdown-value breakdown-value--penalty" id="bd-warning">0</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Critical Penalty</span>
+              <span class="breakdown-value breakdown-value--penalty" id="bd-critical">0</span>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-label">Degradation Penalty</span>
+              <span class="breakdown-value breakdown-value--penalty" id="bd-degradation">0</span>
+            </div>
+            <div class="breakdown-rule" role="separator" aria-hidden="true"></div>
+            <div class="breakdown-row breakdown-row--total">
+              <span class="breakdown-label">Final Trust</span>
+              <span class="breakdown-value breakdown-value--total" id="bd-total">—</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── DECISION EXPLANATION ───────────────────────────────────────── -->
+    <section class="section section--ash" id="section-decision" aria-labelledby="decision-card-heading">
+      <div class="page-wrapper">
+        <div class="card card--asymmetric decision-card reveal">
+
+          <h2 class="decision-heading" id="decision-card-heading">Why This Decision?</h2>
+
+          <!-- Unavailable -->
+          <div id="decision-unavailable">
+            <p class="evidence-unavail">Trust Engine data not yet available from this backend.</p>
+          </div>
+
+          <!-- Content (hidden until Trust Engine responds) -->
+          <div id="decision-content" hidden>
+            <div class="decision-status-line" id="decision-status-line"></div>
+            <ul class="decision-reasons" id="decision-reasons" aria-label="Decision reasons"></ul>
+            <p class="decision-verdict" id="decision-verdict"></p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── LIVE CHARTS ────────────────────────────────────────────────── -->
+    <section class="section section--white" id="section-charts" aria-labelledby="charts-heading">
+      <div class="page-wrapper">
+        <h2 class="section-heading reveal" id="charts-heading">Live Charts</h2>
+        <div class="charts-grid">
+
+          <!-- Temperature Chart -->
+          <div class="card card--data chart-card reveal" id="chart-card-temperature">
+            <div class="chart-card-header">
+              <h3 class="chart-card-title">Temperature</h3>
+              <div class="range-controls" data-chart="temperature" role="group" aria-label="Time range for temperature chart">
+                <button class="range-btn btn--ghost" data-range="30">30s</button>
+                <button class="range-btn btn--ghost" data-range="60">1m</button>
+                <button class="range-btn btn--cta"   data-range="300">5m</button>
+                <button class="range-btn btn--ghost" data-range="1800">30m</button>
+              </div>
+            </div>
+            <div class="chart-legend" id="chart-legend-temperature" aria-hidden="true"></div>
+            <div class="chart-container" id="chart-temperature"></div>
+          </div>
+
+          <!-- Rotation Chart -->
+          <div class="card card--data chart-card reveal" id="chart-card-rotation">
+            <div class="chart-card-header">
+              <h3 class="chart-card-title">Rotation (RPM)</h3>
+              <div class="range-controls" data-chart="rotation" role="group" aria-label="Time range for rotation chart">
+                <button class="range-btn btn--ghost" data-range="30">30s</button>
+                <button class="range-btn btn--ghost" data-range="60">1m</button>
+                <button class="range-btn btn--cta"   data-range="300">5m</button>
+                <button class="range-btn btn--ghost" data-range="1800">30m</button>
+              </div>
+            </div>
+            <div class="chart-legend" id="chart-legend-rotation" aria-hidden="true"></div>
+            <div class="chart-container" id="chart-rotation"></div>
+          </div>
+
+          <!-- Current & Power Chart -->
+          <div class="card card--data chart-card chart-card--wide reveal" id="chart-card-electrical">
+            <div class="chart-card-header">
+              <h3 class="chart-card-title">Current &amp; Power</h3>
+              <div class="range-controls" data-chart="electrical" role="group" aria-label="Time range for current and power chart">
+                <button class="range-btn btn--ghost" data-range="30">30s</button>
+                <button class="range-btn btn--ghost" data-range="60">1m</button>
+                <button class="range-btn btn--cta"   data-range="300">5m</button>
+                <button class="range-btn btn--ghost" data-range="1800">30m</button>
+              </div>
+            </div>
+            <div class="chart-legend" id="chart-legend-electrical" aria-hidden="true"></div>
+            <div class="chart-container" id="chart-electrical"></div>
+          </div>
+
+        </div><!-- /charts-grid -->
+      </div>
+    </section>
+
+    <!-- ── MACHINE STATE TIMELINE ─────────────────────────────────────── -->
+    <section class="section section--ash" id="section-timeline" aria-labelledby="timeline-heading">
+      <div class="page-wrapper">
+        <h2 class="section-heading reveal" id="timeline-heading">Machine State Timeline</h2>
+        <div class="card card--data reveal">
+          <div class="timeline-track" id="timeline-track" role="list" aria-label="Historical machine states"></div>
+          <div class="timeline-detail" id="timeline-detail" hidden aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TECHNICAL DETAILS ──────────────────────────────────────────── -->
+    <section class="section section--white" id="section-technical">
+      <div class="page-wrapper">
+        <div class="technical-header reveal">
+          <h2 class="section-heading" style="margin-bottom:0" id="technical-heading">Technical Details</h2>
+          <button class="btn--ghost technical-toggle" id="technical-toggle"
+                  aria-expanded="false" aria-controls="technical-panel">
+            Show Technical Details
+          </button>
+        </div>
+        <div class="card card--data technical-panel" id="technical-panel" hidden>
+          <dl class="technical-dl">
+            <div class="technical-row">
+              <dt class="technical-label">Device ID</dt>
+              <dd class="technical-value" id="tech-device-id">—</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Model</dt>
+              <dd class="technical-value">Isolation Forest</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Features Used</dt>
+              <dd class="technical-value" id="tech-features">34</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Training Dataset</dt>
+              <dd class="technical-value">normal_data.json</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Rule Engine</dt>
+              <dd class="technical-value">Deterministic — Stage 2</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Temporal Persistence</dt>
+              <dd class="technical-value">3 consecutive readings</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Model Status</dt>
+              <dd class="technical-value" id="tech-model-status">—</dd>
+            </div>
+            <div class="technical-row">
+              <dt class="technical-label">Backend</dt>
+              <dd class="technical-value">FastAPI · Supabase</dd>
+            </div>
+          </dl>
+          <a class="technical-raw-link" id="technical-raw-link" href="#" aria-label="View raw API payload">
+            View raw payload ↗
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── CHART EXPAND MODAL ─────────────────────────────────────────── -->
+  <div class="modal-backdrop" id="modal-backdrop" data-open="false"
+       role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-panel" role="document">
+      <header class="modal-header">
+        <div>
+          <h2 class="modal-title" id="modal-title">Chart</h2>
+          <p class="modal-subtitle" id="modal-subtitle"></p>
+        </div>
+        <button class="btn--ghost modal-close" id="modal-close" aria-label="Close chart">×</button>
+      </header>
+      <div class="range-controls modal-range-controls" id="modal-range-controls"
+           role="group" aria-label="Modal chart time range">
+        <button class="range-btn btn--ghost" data-range="30">30s</button>
+        <button class="range-btn btn--ghost" data-range="60">1m</button>
+        <button class="range-btn btn--cta"   data-range="300">5m</button>
+        <button class="range-btn btn--ghost" data-range="1800">30m</button>
+      </div>
+      <div class="chart-legend" id="modal-legend" aria-hidden="true"></div>
+      <div class="chart-container" id="modal-chart"></div>
+      <div class="modal-stats" id="modal-stats"></div>
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
