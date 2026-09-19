@@ -50,7 +50,7 @@
     <!-- ── HERO: Trust Score + Digital Twin ──────────────────────────── -->
     <section class="section section--white" id="section-hero" aria-labelledby="hero-heading">
       <div class="page-wrapper">
-        <h1 id="hero-heading" class="sr-only">Machine Trust Status</h1>
+        <h1 id="hero-heading" class="sr-only">Sensor Trust Status</h1>
         <div class="card card--asymmetric hero-card reveal">
 
           <!-- Left: Trust Score -->
@@ -108,6 +108,18 @@
           </div><!-- /hero-twin -->
 
         </div><!-- /hero-card -->
+      </div>
+    </section>
+
+    <!-- ── SYSTEM SNAPSHOT ───────────────────────────────────────────── -->
+    <section class="snapshot-section" aria-label="PulseTrust system snapshot">
+      <div class="page-wrapper">
+        <div class="snapshot-grid reveal">
+          <div class="snapshot-item"><span class="snapshot-kicker">Operating mode</span><strong class="snapshot-value" id="snap-mode">—</strong><span class="snapshot-note">runtime source</span></div>
+          <div class="snapshot-item"><span class="snapshot-kicker">Sensor agreement</span><strong class="snapshot-value" id="snap-agreement">—</strong><span class="snapshot-note">redundant temperature pair</span></div>
+          <div class="snapshot-item"><span class="snapshot-kicker">Event evidence</span><strong class="snapshot-value" id="snap-event">—</strong><span class="snapshot-note">cross-sensor corroboration</span></div>
+          <div class="snapshot-item snapshot-item--pipeline"><span class="snapshot-kicker">Trust pipeline</span><div class="pipeline-mini"><span>Telemetry</span><i>→</i><span>Features</span><i>→</i><span>IF</span><i>→</i><span>Trust</span></div><span class="snapshot-note">deterministic core online</span></div>
+        </div>
       </div>
     </section>
 
@@ -222,10 +234,20 @@
       </div>
     </section>
 
-    <!-- ── WHY DO WE TRUST THIS MACHINE? ─────────────────────────────── -->
+    <!-- ── TRUST LOGIC ──────────────────────────────────────────────── -->
+    <section class="logic-section section--ash" aria-label="Trust logic">
+      <div class="page-wrapper">
+        <div class="logic-band reveal">
+          <div><span class="logic-eyebrow">Trust before action</span><p class="logic-copy">An unusual reading can still be trustworthy. PulseTrust_ separates <strong>sensor reliability</strong> from <strong>process abnormality</strong>.</p></div>
+          <div class="logic-flow" aria-hidden="true"><span>Behaviour</span><b>+</b><span>Agreement</span><b>+</b><span>Corroboration</span><b>→</b><span class="logic-result">Trust</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SENSOR TRUST EVIDENCE ─────────────────────────────────────── -->
     <section class="section section--ash" id="section-evidence" aria-labelledby="evidence-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="evidence-heading">Why we trust this machine</h2>
+        <h2 class="section-heading reveal" id="evidence-heading">Sensor trust evidence</h2>
         <div class="evidence-grid">
 
           <!-- Isolation Forest -->
@@ -381,7 +403,7 @@
     <!-- ── MACHINE STATE TIMELINE ─────────────────────────────────────── -->
     <section class="section section--ash" id="section-timeline" aria-labelledby="timeline-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="timeline-heading">Machine state timeline</h2>
+        <h2 class="section-heading reveal" id="timeline-heading">Trust state timeline</h2>
         <div class="card card--data reveal">
           <div class="timeline-track" id="timeline-track" role="list" aria-label="Historical machine states"></div>
           <div class="timeline-detail" id="timeline-detail" hidden aria-live="polite"></div>
@@ -411,19 +433,19 @@
             </div>
             <div class="technical-row">
               <dt class="technical-label">Features used</dt>
-              <dd class="technical-value" id="tech-features">34</dd>
+              <dd class="technical-value" id="tech-features">6</dd>
             </div>
             <div class="technical-row">
               <dt class="technical-label">Training dataset</dt>
-              <dd class="technical-value">normal_data.json</dd>
+              <dd class="technical-value">Synthetic bootstrap baseline</dd>
             </div>
             <div class="technical-row">
               <dt class="technical-label">Rule engine</dt>
-              <dd class="technical-value">Deterministic — Stage 2</dd>
+              <dd class="technical-value">Deterministic trust + cross-sensor evidence</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Temporal persistence</dt>
-              <dd class="technical-value">3 consecutive readings</dd>
+              <dt class="technical-label">Trust states</dt>
+              <dd class="technical-value">TRUSTED · DEGRADED · UNTRUSTED</dd>
             </div>
             <div class="technical-row">
               <dt class="technical-label">Model status</dt>

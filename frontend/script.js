@@ -1567,8 +1567,27 @@ function initDemoButtons() {
 /* ╔══════════════════════════════════════════════════════════╗
    ║  MASTER RENDER                                           ║
    ╚══════════════════════════════════════════════════════════╝ */
+
+function renderSnapshot() {
+  const data = appState.data;
+  const modeEl = document.getElementById('snap-mode');
+  const agreementEl = document.getElementById('snap-agreement');
+  const eventEl = document.getElementById('snap-event');
+  if (modeEl) modeEl.textContent = appState.mode === 'demo' ? 'SIMULATION' : 'LIVE';
+  if (agreementEl) {
+    if (data?.agreement === true) agreementEl.textContent = 'AGREE';
+    else if (data?.agreement === false) agreementEl.textContent = 'DISAGREE';
+    else {
+      const a = Number(data?.telemetry?.temp_1), b = Number(data?.telemetry?.temp_2);
+      agreementEl.textContent = Number.isFinite(a) && Number.isFinite(b) ? (Math.abs(a-b) <= 1 ? 'AGREE' : 'DISAGREE') : '—';
+    }
+  }
+  if (eventEl) eventEl.textContent = data?.corroborated_event === true ? 'CORROBORATED' : data?.corroborated_event === false ? 'NONE' : '—';
+}
+
 function renderAll() {
   renderHeader();
+  renderSnapshot();
   renderHero();
   renderDigitalTwin();
   renderTelemetry();
