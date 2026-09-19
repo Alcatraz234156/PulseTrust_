@@ -11,13 +11,6 @@
 </head>
 <body>
 
-  <!-- ── AMBIENT BACKGROUND ──────────────────────────────────────────── -->
-  <div class="background-layer" aria-hidden="true">
-    <div class="background-grid"></div>
-    <div class="background-wash background-wash--a"></div>
-    <div class="background-wash background-wash--b"></div>
-  </div>
-
   <!-- ── HEADER ──────────────────────────────────────────────────────── -->
   <header class="site-header">
     <div class="page-wrapper site-header__inner">
@@ -31,11 +24,11 @@
 
         <!-- Demo pill — visible only in demo mode -->
         <div class="demo-pill" id="demo-pill" hidden>
-          <span class="demo-pill__label">DEMO MODE — Simulated Data</span>
+          <span class="demo-pill__label">Demo mode: simulated data</span>
           <div class="demo-scenarios" id="demo-scenarios" role="group" aria-label="Demo scenarios">
             <button class="btn-scenario btn--cta"   data-scenario="normal"         aria-pressed="true">Normal</button>
-            <button class="btn-scenario btn--ghost" data-scenario="sensor-failure" aria-pressed="false">Sensor Failure</button>
-            <button class="btn-scenario btn--ghost" data-scenario="real-event"     aria-pressed="false">Real Event</button>
+            <button class="btn-scenario btn--ghost" data-scenario="sensor-failure" aria-pressed="false">Sensor failure</button>
+            <button class="btn-scenario btn--ghost" data-scenario="real-event"     aria-pressed="false">Real event</button>
           </div>
         </div>
 
@@ -55,7 +48,7 @@
   <main id="main-content">
 
     <!-- ── HERO: Trust Score + Digital Twin ──────────────────────────── -->
-    <section class="section section--ash" id="section-hero" aria-labelledby="hero-heading">
+    <section class="section section--white" id="section-hero" aria-labelledby="hero-heading">
       <div class="page-wrapper">
         <h1 id="hero-heading" class="sr-only">Machine Trust Status</h1>
         <div class="card card--asymmetric hero-card reveal">
@@ -76,7 +69,7 @@
                   <span class="trust-score-number" id="trust-score-number">—</span>
                 </div>
               </div>
-              <p class="trust-score-caption">TRUST SCORE</p>
+              <p class="trust-score-caption">Trust score</p>
               <div class="trust-state-row">
                 <span class="state-dot" id="state-dot" aria-hidden="true"></span>
                 <span class="state-label" id="state-label">—</span>
@@ -87,7 +80,7 @@
             <!-- Unavailable state (Trust Engine not yet provided by backend) -->
             <div id="hero-unavailable">
               <div class="trust-unavail-dash" aria-hidden="true">—</div>
-              <p class="trust-score-caption">TRUST SCORE</p>
+              <p class="trust-score-caption">Trust score</p>
               <p class="trust-unavail-notice">
                 Trust Engine data not yet available from this backend.
                 Live telemetry is still being collected below.
@@ -99,7 +92,7 @@
           <!-- Right: Digital Twin -->
           <div class="hero-twin">
             <div class="twin-label-row">
-              <span class="twin-eyebrow">Digital Twin</span>
+              <span class="twin-eyebrow">Digital twin</span>
               <span class="twin-device-id" id="twin-device-id">—</span>
             </div>
             <div class="twin-canvas" id="twin-canvas" aria-label="Fan machine digital twin visualization">
@@ -119,9 +112,9 @@
     </section>
 
     <!-- ── LIVE TELEMETRY ─────────────────────────────────────────────── -->
-    <section class="section section--white" id="section-telemetry" aria-labelledby="tel-heading">
+    <section class="section section--ash" id="section-telemetry" aria-labelledby="tel-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="tel-heading">Live Telemetry</h2>
+        <h2 class="section-heading reveal" id="tel-heading">Live telemetry</h2>
         <div class="telemetry-grid">
 
           <!-- Temperature -->
@@ -232,7 +225,7 @@
     <!-- ── WHY DO WE TRUST THIS MACHINE? ─────────────────────────────── -->
     <section class="section section--ash" id="section-evidence" aria-labelledby="evidence-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="evidence-heading">Why Do We Trust This Machine?</h2>
+        <h2 class="section-heading reveal" id="evidence-heading">Why we trust this machine</h2>
         <div class="evidence-grid">
 
           <!-- Isolation Forest -->
@@ -245,7 +238,7 @@
 
           <!-- Rule Engine -->
           <div class="card card--data evidence-card reveal" id="evidence-rule">
-            <h3 class="evidence-title">Rule Engine</h3>
+            <h3 class="evidence-title">Rule engine</h3>
             <div class="evidence-body" id="evidence-rule-body">
               <p class="evidence-unavail">Awaiting Trust Engine data</p>
             </div>
@@ -253,7 +246,7 @@
 
           <!-- Temporal Behaviour -->
           <div class="card card--data evidence-card reveal" id="evidence-temporal">
-            <h3 class="evidence-title">Temporal Behaviour</h3>
+            <h3 class="evidence-title">Temporal behaviour</h3>
             <div class="evidence-body" id="evidence-temporal-body">
               <p class="evidence-unavail">Awaiting Trust Engine data</p>
             </div>
@@ -264,9 +257,9 @@
     </section>
 
     <!-- ── TRUST SCORE BREAKDOWN ──────────────────────────────────────── -->
-    <section class="section section--white" id="section-breakdown" aria-labelledby="breakdown-heading">
+    <section class="section section--ash" id="section-breakdown" aria-labelledby="breakdown-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="breakdown-heading">Trust Score Breakdown</h2>
+        <h2 class="section-heading reveal" id="breakdown-heading">Trust score breakdown</h2>
         <div class="card card--data breakdown-card reveal">
 
           <!-- Unavailable state -->
@@ -277,28 +270,28 @@
           <!-- Ledger (hidden until Trust Engine responds) -->
           <div class="breakdown-ledger" id="breakdown-ledger" hidden>
             <div class="breakdown-row">
-              <span class="breakdown-label">Base Trust</span>
+              <span class="breakdown-label">Base trust</span>
               <span class="breakdown-value" id="bd-base">+100</span>
             </div>
             <div class="breakdown-row">
-              <span class="breakdown-label">Anomaly Penalty</span>
+              <span class="breakdown-label">Anomaly penalty</span>
               <span class="breakdown-value breakdown-value--penalty" id="bd-anomaly">0</span>
             </div>
             <div class="breakdown-row">
-              <span class="breakdown-label">Warning Penalty</span>
+              <span class="breakdown-label">Warning penalty</span>
               <span class="breakdown-value breakdown-value--penalty" id="bd-warning">0</span>
             </div>
             <div class="breakdown-row">
-              <span class="breakdown-label">Critical Penalty</span>
+              <span class="breakdown-label">Critical penalty</span>
               <span class="breakdown-value breakdown-value--penalty" id="bd-critical">0</span>
             </div>
             <div class="breakdown-row">
-              <span class="breakdown-label">Degradation Penalty</span>
+              <span class="breakdown-label">Degradation penalty</span>
               <span class="breakdown-value breakdown-value--penalty" id="bd-degradation">0</span>
             </div>
             <div class="breakdown-rule" role="separator" aria-hidden="true"></div>
             <div class="breakdown-row breakdown-row--total">
-              <span class="breakdown-label">Final Trust</span>
+              <span class="breakdown-label">Final trust</span>
               <span class="breakdown-value breakdown-value--total" id="bd-total">—</span>
             </div>
           </div>
@@ -308,11 +301,11 @@
     </section>
 
     <!-- ── DECISION EXPLANATION ───────────────────────────────────────── -->
-    <section class="section section--ash" id="section-decision" aria-labelledby="decision-card-heading">
+    <section class="section section--white" id="section-decision" aria-labelledby="decision-card-heading">
       <div class="page-wrapper">
         <div class="card card--asymmetric decision-card reveal">
 
-          <h2 class="decision-heading" id="decision-card-heading">Why This Decision?</h2>
+          <h2 class="decision-heading" id="decision-card-heading">Why this decision?</h2>
 
           <!-- Unavailable -->
           <div id="decision-unavailable">
@@ -331,9 +324,9 @@
     </section>
 
     <!-- ── LIVE CHARTS ────────────────────────────────────────────────── -->
-    <section class="section section--white" id="section-charts" aria-labelledby="charts-heading">
+    <section class="section section--ash" id="section-charts" aria-labelledby="charts-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="charts-heading">Live Charts</h2>
+        <h2 class="section-heading reveal" id="charts-heading">Live charts</h2>
         <div class="charts-grid">
 
           <!-- Temperature Chart -->
@@ -388,7 +381,7 @@
     <!-- ── MACHINE STATE TIMELINE ─────────────────────────────────────── -->
     <section class="section section--ash" id="section-timeline" aria-labelledby="timeline-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="timeline-heading">Machine State Timeline</h2>
+        <h2 class="section-heading reveal" id="timeline-heading">Machine state timeline</h2>
         <div class="card card--data reveal">
           <div class="timeline-track" id="timeline-track" role="list" aria-label="Historical machine states"></div>
           <div class="timeline-detail" id="timeline-detail" hidden aria-live="polite"></div>
@@ -397,13 +390,13 @@
     </section>
 
     <!-- ── TECHNICAL DETAILS ──────────────────────────────────────────── -->
-    <section class="section section--white" id="section-technical">
+    <section class="section section--ash" id="section-technical">
       <div class="page-wrapper">
         <div class="technical-header reveal">
-          <h2 class="section-heading" style="margin-bottom:0" id="technical-heading">Technical Details</h2>
+          <h2 class="section-heading" style="margin-bottom:0" id="technical-heading">Technical details</h2>
           <button class="btn--ghost technical-toggle" id="technical-toggle"
                   aria-expanded="false" aria-controls="technical-panel">
-            Show Technical Details
+            Show technical details
           </button>
         </div>
         <div class="card card--data technical-panel" id="technical-panel" hidden>
@@ -417,23 +410,23 @@
               <dd class="technical-value">Isolation Forest</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Features Used</dt>
+              <dt class="technical-label">Features used</dt>
               <dd class="technical-value" id="tech-features">34</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Training Dataset</dt>
+              <dt class="technical-label">Training dataset</dt>
               <dd class="technical-value">normal_data.json</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Rule Engine</dt>
+              <dt class="technical-label">Rule engine</dt>
               <dd class="technical-value">Deterministic — Stage 2</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Temporal Persistence</dt>
+              <dt class="technical-label">Temporal persistence</dt>
               <dd class="technical-value">3 consecutive readings</dd>
             </div>
             <div class="technical-row">
-              <dt class="technical-label">Model Status</dt>
+              <dt class="technical-label">Model status</dt>
               <dd class="technical-value" id="tech-model-status">—</dd>
             </div>
             <div class="technical-row">
@@ -442,7 +435,7 @@
             </div>
           </dl>
           <a class="technical-raw-link" id="technical-raw-link" href="#" aria-label="View raw API payload">
-            View raw payload ↗
+            View raw payload
           </a>
         </div>
       </div>

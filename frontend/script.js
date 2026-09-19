@@ -435,32 +435,6 @@ const appState = {
 };
 
 /* ╔══════════════════════════════════════════════════════════╗
-   ║  5. BACKGROUND + PARALLAX                                ║
-   ╚══════════════════════════════════════════════════════════╝ */
-function initBackground() {
-  const root         = document.documentElement;
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const hasFine      = window.matchMedia('(pointer: fine)').matches;
-
-  if (!reduceMotion && hasFine) {
-    let tx = 0, ty = 0, cx = 0, cy = 0;
-
-    window.addEventListener('pointermove', (e) => {
-      tx = (e.clientX / window.innerWidth  - 0.5) * 2;
-      ty = (e.clientY / window.innerHeight - 0.5) * 2;
-    }, { passive: true });
-
-    (function tick() {
-      cx += (tx - cx) * 0.05;
-      cy += (ty - cy) * 0.05;
-      root.style.setProperty('--mx', cx.toFixed(3));
-      root.style.setProperty('--my', cy.toFixed(3));
-      requestAnimationFrame(tick);
-    })();
-  }
-}
-
-/* ╔══════════════════════════════════════════════════════════╗
    ║  6. SCROLL REVEAL                                        ║
    ╚══════════════════════════════════════════════════════════╝ */
 function initScrollReveal() {
@@ -592,9 +566,7 @@ function buildFanSVG() {
       <circle id="fan-hub"        cx="${cx}" cy="${cy}" r="${hubR}" fill="none" stroke-width="2.5" />
       <circle id="fan-hub-center" cx="${cx}" cy="${cy}" r="4" />
     </g>
-    <text id="fan-warn-glyph" x="182" y="60" font-size="20" text-anchor="middle"
-          dominant-baseline="middle" font-family="system-ui,sans-serif"
-          fill="var(--state-caution)" opacity="0" aria-hidden="true">⚠</text>
+    <g id="fan-warn-glyph" opacity="0" aria-hidden="true" fill="none" stroke="var(--state-caution)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M182 46 L196 72 H168 Z"/><path d="M182 56 V64"/><path d="M182 68 V68.5"/></g>
   </svg>`;
 }
 
@@ -735,23 +707,23 @@ function renderIsolationForest() {
 
   body.innerHTML = `
     <div class="if-status ${isAnomaly ? 'if-status--anomaly' : 'if-status--normal'}">
-      ${isAnomaly ? '⚠ ANOMALY DETECTED' : '✓ NORMAL'}
+      ${icon(isAnomaly ? 'warn' : 'check')}${isAnomaly ? 'Anomaly detected' : 'Normal'}
     </div>
     <div class="if-metric-list">
       <div class="if-metric-row">
-        <span class="if-metric-label">Anomaly Score</span>
+        <span class="if-metric-label">Anomaly score</span>
         <span class="if-metric-value">${esc(score)}</span>
       </div>
       <div class="if-metric-row">
-        <span class="if-metric-label">Normalized Score</span>
+        <span class="if-metric-label">Normalized score</span>
         <span class="if-metric-value">${esc(normScore)}</span>
       </div>
       <div class="if-metric-row">
-        <span class="if-metric-label">Model Status</span>
+        <span class="if-metric-label">Model status</span>
         <span class="if-metric-value">${esc(anomaly.model_status ?? '—')}</span>
       </div>
       <div class="if-metric-row">
-        <span class="if-metric-label">Features Used</span>
+        <span class="if-metric-label">Features used</span>
         <span class="if-metric-value">${esc(String(anomaly.features_used ?? '—'))}</span>
       </div>
     </div>`;
@@ -766,7 +738,9 @@ function renderRuleEngine() {
     return;
   }
 
-  const violations = ruleSummary.violations ?? [];
+  // Backend may send violations as plain strings; normalise to one shape.
+  const violations = (ruleSummary.violations ?? []).map(v =>
+    typeof v === 'string' ? { rule: v, text: v } : v);
 
   // Map each check category to whether it's violated
   const checks = [
@@ -780,18 +754,18 @@ function renderRuleEngine() {
   const rows = checks.map(chk => {
     const violation = violations.find(v =>
       chk.ruleHint.some(h =>
-        (v.rule   ?? '').includes(h) ||
-        (v.metric ?? '').includes(h.toLowerCase())
+        (v.rule   ?? '').toLowerCase().includes(h.toLowerCase()) ||
+        (v.metric ?? '').toLowerCase().includes(h.toLowerCase())
       )
     );
     const pass = !violation;
     let html = `<div class="rule-item">
       <div class="rule-item-header">
-        <span class="rule-icon ${pass ? 'rule-icon--pass' : 'rule-icon--fail'}">${pass ? '✓' : '✕'}</span>
+        ${icon(pass ? 'check' : 'cross', pass ? 'rule-icon--pass' : 'rule-icon--fail')}
         <span class="rule-label ${pass ? '' : 'rule-label--fail'}">${esc(chk.key)}</span>
       </div>`;
     if (violation) {
-      const detail = `${esc(violation.rule)} — ${esc(violation.severity)} — ${esc(String(violation.metric))}: ${esc(String(violation.value))} / threshold: ${esc(String(violation.threshold))}`;
+      const detail = violation.text ? esc(violation.text) : `${esc(violation.rule)} — ${esc(violation.severity)} — ${esc(String(violation.metric))}: ${esc(String(violation.value))} / threshold: ${esc(String(violation.threshold))}`;
       html += `<div class="rule-violation-detail">${detail}</div>`;
     }
     html += `</div>`;
@@ -835,7 +809,7 @@ function renderTemporal() {
     const isPersistent = m.count >= 3;
     const pillClass    = isPersistent ? 'temporal-pill--persistent' : '';
     const pillText     = m.count > 0
-      ? `${m.count} / 3${isPersistent ? ' — ⚠ PERSISTENT' : ''}`
+      ? `${m.count} of 3${isPersistent ? ', persistent' : ''}`
       : null;
 
     return `<div class="temporal-row">
@@ -913,19 +887,19 @@ function renderDecision() {
   content.hidden = false;
 
   const statusMap = {
-    TRUSTED:   { icon: '✓',  label: 'SENSORS TRUSTED',     color: 'var(--state-trusted)'  },
-    NORMAL:    { icon: '✓',  label: 'SENSORS TRUSTED',     color: 'var(--state-trusted)'  },
-    CAUTION:   { icon: '⚠', label: 'MACHINE IN CAUTION', color: 'var(--state-caution)'  },
-    DEGRADED:  { icon: '⚠', label: 'SENSOR TRUST DEGRADED', color: 'var(--state-caution)'  },
-    DEGRADING: { icon: '⚠', label: 'SENSOR TRUST DEGRADED', color: 'var(--state-caution)'  },
-    UNTRUSTED: { icon: '⛔', label: 'SENSORS UNTRUSTED',    color: 'var(--state-critical)' },
-    FAULT:     { icon: '⛔', label: 'SENSORS UNTRUSTED',    color: 'var(--state-critical)' },
-    OFFLINE:   { icon: '⛔', label: 'MACHINE OFFLINE',    color: 'var(--state-critical)' },
+    TRUSTED:   { icon: 'check',  label: 'Sensors trusted',     color: 'var(--state-trusted)'  },
+    NORMAL:    { icon: 'check',  label: 'Sensors trusted',     color: 'var(--state-trusted)'  },
+    CAUTION:   { icon: 'warn', label: 'Machine in caution', color: 'var(--state-caution)'  },
+    DEGRADED:  { icon: 'warn', label: 'Sensor trust degraded', color: 'var(--state-caution)'  },
+    DEGRADING: { icon: 'warn', label: 'Sensor trust degraded', color: 'var(--state-caution)'  },
+    UNTRUSTED: { icon: 'block', label: 'Sensors untrusted',    color: 'var(--state-critical)' },
+    FAULT:     { icon: 'block', label: 'Sensors untrusted',    color: 'var(--state-critical)' },
+    OFFLINE:   { icon: 'block', label: 'Machine offline',    color: 'var(--state-critical)' },
   };
-  const s = statusMap[state] ?? { icon: '·', label: state ?? '—', color: 'var(--color-steel)' };
+  const s = statusMap[state] ?? { icon: '', label: state ?? '—', color: 'var(--color-steel)' };
 
   const statusLineEl = document.getElementById('decision-status-line');
-  statusLineEl.textContent = `${s.icon} ${s.label}`;
+  statusLineEl.innerHTML = `${icon(s.icon)}<span>${esc(s.label)}</span>`;
   statusLineEl.style.color = s.color;
 
   const reasonsEl = document.getElementById('decision-reasons');
@@ -1011,17 +985,8 @@ function renderLineChart(container, series, { height = 220 } = {}) {
 
     const line  = sorted.map((p, i) => `${i === 0 ? 'M' : 'L'}${px(p.t).toFixed(1)},${py(p.value).toFixed(1)}`).join(' ');
     const first = sorted[0], last = sorted[sorted.length - 1];
-    const area  = `${line} L${px(last.t).toFixed(1)},${(pad.t + iH).toFixed(1)} L${px(first.t).toFixed(1)},${(pad.t + iH).toFixed(1)} Z`;
-    const gId   = `g${Math.random().toString(36).slice(2,8)}`;
 
     seriesSvg += `
-      <defs>
-        <linearGradient id="${gId}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="${s.color}" stop-opacity="0.14"/>
-          <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d="${area}" fill="url(#${gId})" stroke="none"/>
       <path d="${line}" fill="none" stroke="${s.color}" stroke-width="2"
             stroke-linejoin="round" stroke-linecap="round"/>`;
   });
@@ -1290,7 +1255,7 @@ function showTimelineDetail(entry) {
         <span class="timeline-detail-value">${esc(time)}</span>
       </div>
       <div class="timeline-detail-item">
-        <span class="timeline-detail-label">Trust Score</span>
+        <span class="timeline-detail-label">Trust score</span>
         <span class="timeline-detail-value">${esc(score)}</span>
       </div>
       <div class="timeline-detail-item">
@@ -1317,7 +1282,7 @@ function initTechnicalDetails() {
     const open = panel.hidden;
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
-    toggle.textContent = open ? 'Hide Technical Details' : 'Show Technical Details';
+    toggle.textContent = open ? 'Hide technical details' : 'Show technical details';
   });
 }
 
@@ -1333,7 +1298,7 @@ function renderTechnicalDetails() {
       const blob = new Blob([JSON.stringify(appState.lastRawPayload, null, 2)], { type: 'application/json' });
       rawLink.href     = URL.createObjectURL(blob);
       rawLink.download = `payload-${Date.now()}.json`;
-      rawLink.textContent = 'Download raw payload ↗';
+      rawLink.textContent = 'Download raw payload';
     } catch (_) {}
   }
 }
@@ -1620,7 +1585,6 @@ function renderAll() {
    ║  22. INIT                                                ║
    ╚══════════════════════════════════════════════════════════╝ */
 document.addEventListener('DOMContentLoaded', () => {
-  initBackground();
   initScrollReveal();
   initDigitalTwin();
   initRangeControls();
@@ -1641,6 +1605,18 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ╔══════════════════════════════════════════════════════════╗
    ║  UTILITIES                                               ║
    ╚══════════════════════════════════════════════════════════╝ */
+
+/** Monoline icons, same stroke language as the fan twin */
+const ICONS = {
+  check: '<path d="M3 8.5l3.2 3.2L13 4.8"/>',
+  cross: '<path d="M4 4l8 8M12 4l-8 8"/>',
+  warn:  '<path d="M8 2.2L14.2 13H1.8L8 2.2Z"/><path d="M8 6.5v3M8 11.4v.1"/>',
+  block: '<circle cx="8" cy="8" r="5.8"/><path d="M3.9 3.9l8.2 8.2"/>',
+};
+function icon(name, extra = '') {
+  if (!ICONS[name]) return '';
+  return `<svg class="icon ${extra}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+}
 
 /** Set text content safely */
 function setTxt(id, text) {
