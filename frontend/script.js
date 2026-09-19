@@ -71,6 +71,71 @@ function mapBackendPayload(raw) {
   };
 }
 
+/* Map the actual PulseTrust_ Trust Engine response into the frontend contract. */
+function mapTrustPayload(raw, telemetry = null) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const s1 = raw.sensor_1 ?? {};
+  const s2 = raw.sensor_2 ?? {};
+  const t1 = s1.value ?? telemetry?.temp_1 ?? null;
+  const t2 = s2.value ?? telemetry?.temp_2 ?? null;
+  const tempAvg = (t1 !== null && t2 !== null)
+    ? parseFloat(((Number(t1) + Number(t2)) / 2).toFixed(2))
+    : null;
+
+  const state = raw.state ?? null;
+  const decision =
+    state === 'TRUSTED' ? 'ALLOW' :
+    state === 'DEGRADED' ? 'CAUTION' :
+    state === 'UNTRUSTED' ? 'BLOCK' : null;
+
+  const anomalyScores = [s1.anomaly_score, s2.anomaly_score]
+    .filter(v => v !== null && v !== undefined && !Number.isNaN(Number(v)))
+    .map(Number);
+
+  return {
+    device_id: raw.device_id ?? telemetry?.device_id ?? 'PulseTrust_ Simulation',
+    timestamp: telemetry?.recorded_at ?? new Date().toISOString(),
+
+    telemetry: {
+      temp_1: t1,
+      temp_2: t2,
+      temp_avg: tempAvg,
+      rpm: telemetry?.rpm ?? null,
+      vibration: telemetry?.vibration ?? null,
+      voltage: telemetry?.voltage ?? null,
+      current: telemetry?.current ?? null,
+      power: telemetry?.power ?? null,
+      fan_on: telemetry?.fan ?? null,
+      hall_raw: telemetry?.hall_raw ?? null,
+    },
+
+    trust_score: raw.trust_score ?? null,
+    state,
+    decision,
+
+    anomaly_summary: {
+      is_anomaly: Boolean(s1.anomaly) || Boolean(s2.anomaly),
+      anomaly_score: anomalyScores.length ? Math.min(...anomalyScores) : null,
+      normalized_score: null,
+      model_status: 'Isolation Forest Active',
+      features_used: 6,
+    },
+
+    rule_summary: {
+      violations: raw.reasons ?? [],
+      warning_count: state === 'DEGRADED' ? (raw.reasons?.length ?? 0) : 0,
+      critical_count: state === 'UNTRUSTED' ? (raw.reasons?.length ?? 0) : 0,
+    },
+
+    temporal_summary: null,
+    score_breakdown: null,
+    reasons: raw.reasons ?? [],
+    agreement: raw.agreement ?? null,
+    corroborated_event: raw.corroborated_event ?? false,
+  };
+}
+
 /* ╔══════════════════════════════════════════════════════════╗
    ║  3. DEMO HISTORY GENERATOR                               ║
    ║     (must be defined before DEMO_SCENARIOS uses it)      ║
@@ -358,7 +423,7 @@ const appState = {
   history:         [],         // array of canonical payloads (oldest first)
   connected:       false,
   lastUpdated:     null,       // Date object
-  activeScenario:  'HEALTHY',
+  activeScenario:  'normal',
   pollTimer:       null,
   lastRawPayload:  null,
   chartRanges: {               // seconds for each chart
@@ -598,10 +663,10 @@ function renderDigitalTwin() {
   let stroke = 'var(--color-graphite)';
   let warnOpacity = '0';
 
-  if (state === 'CAUTION' || state === 'DEGRADING') {
+  if (state === 'DEGRADED' || state === 'CAUTION' || state === 'DEGRADING') {
     stroke = 'var(--state-caution)';
     warnOpacity = '1';
-  } else if (state === 'FAULT') {
+  } else if (state === 'UNTRUSTED' || state === 'FAULT') {
     stroke = 'var(--state-critical)';
     fanGroup.classList.remove('fan-rotating');
   } else if (state === 'OFFLINE') {
@@ -848,10 +913,13 @@ function renderDecision() {
   content.hidden = false;
 
   const statusMap = {
-    NORMAL:    { icon: '✓',  label: 'MACHINE TRUSTED',    color: 'var(--state-trusted)'  },
+    TRUSTED:   { icon: '✓',  label: 'SENSORS TRUSTED',     color: 'var(--state-trusted)'  },
+    NORMAL:    { icon: '✓',  label: 'SENSORS TRUSTED',     color: 'var(--state-trusted)'  },
     CAUTION:   { icon: '⚠', label: 'MACHINE IN CAUTION', color: 'var(--state-caution)'  },
-    DEGRADING: { icon: '⚠', label: 'MACHINE DEGRADING',  color: 'var(--state-caution)'  },
-    FAULT:     { icon: '⛔', label: 'MACHINE BLOCKED',    color: 'var(--state-critical)' },
+    DEGRADED:  { icon: '⚠', label: 'SENSOR TRUST DEGRADED', color: 'var(--state-caution)'  },
+    DEGRADING: { icon: '⚠', label: 'SENSOR TRUST DEGRADED', color: 'var(--state-caution)'  },
+    UNTRUSTED: { icon: '⛔', label: 'SENSORS UNTRUSTED',    color: 'var(--state-critical)' },
+    FAULT:     { icon: '⛔', label: 'SENSORS UNTRUSTED',    color: 'var(--state-critical)' },
     OFFLINE:   { icon: '⛔', label: 'MACHINE OFFLINE',    color: 'var(--state-critical)' },
   };
   const s = statusMap[state] ?? { icon: '·', label: state ?? '—', color: 'var(--color-steel)' };
@@ -861,7 +929,7 @@ function renderDecision() {
   statusLineEl.style.color = s.color;
 
   const reasonsEl = document.getElementById('decision-reasons');
-  if (reasons.length === 0 && state === 'NORMAL') {
+  if (reasons.length === 0 && (state === 'TRUSTED' || state === 'NORMAL')) {
     reasonsEl.innerHTML = `<li class="decision-reason-item">
       Current behaviour matches the learned healthy operating pattern.
       No critical rules violated. No persistent degradation detected.
@@ -1413,32 +1481,45 @@ async function fetchLatest() {
   if (appState.mode === 'demo') return;
 
   try {
-    const ctrl    = new AbortController();
+    const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), CONFIG.CONNECT_TIMEOUT_MS);
-    const res     = await fetch(`${CONFIG.API_BASE}/api/telemetry/latest`, { signal: ctrl.signal });
+
+    const [telemetryRes, trustRes] = await Promise.all([
+      fetch(`${CONFIG.API_BASE}/api/telemetry/latest`, { signal: ctrl.signal }),
+      fetch(`${CONFIG.API_BASE}/api/trust/latest`, { signal: ctrl.signal }),
+    ]);
+
     clearTimeout(timeout);
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = await res.json();
-    appState.lastRawPayload = raw;
+    if (!telemetryRes.ok) throw new Error(`Telemetry HTTP ${telemetryRes.status}`);
+    if (!trustRes.ok) throw new Error(`Trust HTTP ${trustRes.status}`);
 
-    const canonical = mapBackendPayload(raw);
-    if (!canonical) throw new Error('mapBackendPayload returned null');
+    const telemetryRaw = await telemetryRes.json();
+    const trustRaw = await trustRes.json();
 
-    appState.data       = canonical;
-    appState.connected  = true;
+    appState.lastRawPayload = {
+      telemetry: telemetryRaw,
+      trust: trustRaw,
+    };
+
+    const canonical = mapTrustPayload(trustRaw, telemetryRaw);
+    if (!canonical) throw new Error('mapTrustPayload returned null');
+
+    appState.data = canonical;
+    appState.connected = true;
     appState.lastUpdated = new Date();
+
     appState.history.push({ ...canonical });
     if (appState.history.length > CONFIG.HISTORY_MAX) appState.history.shift();
 
     renderAll();
   } catch (err) {
+    console.error('PulseTrust live request failed:', err);
     appState.connected = false;
+
     if (appState.data === null) {
-      // First poll failed — fall back to Demo Mode automatically
       enterDemoMode();
     } else {
-      // Subsequent failure — keep last data, update header only
       renderHeader();
     }
   }
@@ -1464,25 +1545,49 @@ function enterDemoMode() {
   loadDemoScenario(appState.activeScenario);
 }
 
-function loadDemoScenario(key) {
-  const scenario = DEMO_SCENARIOS[key];
-  if (!scenario) return;
+async function loadDemoScenario(key) {
+  const validScenarios = ['normal', 'sensor-failure', 'real-event'];
+  if (!validScenarios.includes(key)) return;
 
   appState.activeScenario = key;
-  // Refresh scenario timestamp to "now"
-  const live = { ...scenario, timestamp: new Date().toISOString() };
-  appState.data        = live;
-  appState.history     = [...scenario.history];
-  appState.lastUpdated = new Date();
 
-  // Scenario button states
   document.querySelectorAll('.btn-scenario').forEach(btn => {
     const active = btn.dataset.scenario === key;
     btn.className = `btn-scenario ${active ? 'btn--cta' : 'btn--ghost'}`;
     btn.setAttribute('aria-pressed', String(active));
   });
 
-  renderAll();
+  try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), CONFIG.CONNECT_TIMEOUT_MS);
+    const res = await fetch(
+      `${CONFIG.API_BASE}/api/trust/demo/${encodeURIComponent(key)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const raw = await res.json();
+    const canonical = mapTrustPayload(raw);
+
+    if (!canonical) throw new Error('mapTrustPayload returned null');
+
+    appState.lastRawPayload = raw;
+    appState.data = canonical;
+    appState.connected = true;
+    appState.lastUpdated = new Date();
+
+    // Keep a short chart/timeline trail using real backend scenario results.
+    appState.history.push({ ...canonical });
+    if (appState.history.length > CONFIG.HISTORY_MAX) appState.history.shift();
+
+    renderAll();
+  } catch (err) {
+    console.error('PulseTrust demo request failed:', err);
+    appState.connected = false;
+    renderHeader();
+  }
 }
 
 function initDemoButtons() {
@@ -1553,9 +1658,12 @@ function esc(str) {
 /** Map machine state to its CSS color variable */
 function stateToColor(state) {
   switch (state) {
+    case 'TRUSTED':
     case 'NORMAL':    return 'var(--state-trusted)';
+    case 'DEGRADED':
     case 'CAUTION':
     case 'DEGRADING': return 'var(--state-caution)';
+    case 'UNTRUSTED':
     case 'FAULT':
     case 'OFFLINE':   return 'var(--state-critical)';
     default:          return 'var(--color-slate)';
@@ -1565,9 +1673,12 @@ function stateToColor(state) {
 /** Color for the radial ring (same mapping, kept explicit) */
 function stateToRingColor(state) {
   switch (state) {
+    case 'TRUSTED':
     case 'NORMAL':    return 'var(--state-trusted)';
+    case 'DEGRADED':
     case 'CAUTION':
     case 'DEGRADING': return 'var(--state-caution)';
+    case 'UNTRUSTED':
     case 'FAULT':
     case 'OFFLINE':   return 'var(--state-critical)';
     default:          return 'var(--color-mist)';
@@ -1577,9 +1688,12 @@ function stateToRingColor(state) {
 /** Unused in render but kept for completeness */
 function stateToClass(state) {
   switch (state) {
+    case 'TRUSTED':
     case 'NORMAL':    return 'trusted';
+    case 'DEGRADED':
     case 'CAUTION':
     case 'DEGRADING': return 'caution';
+    case 'UNTRUSTED':
     case 'FAULT':
     case 'OFFLINE':   return 'critical';
     default:          return 'offline';
