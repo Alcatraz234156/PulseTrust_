@@ -8,15 +8,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to dashboard</a>
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="rail-brand" href="#main-content"><span class="brand-icon"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m13 2-8 12h6l-1 8 9-13h-7z"/></svg></span>PulseTrust<span class="brand-accent">_</span></a>
+    <div class="workspace-label">INDUSTRIAL INTELLIGENCE</div>
+    <div class="workspace-card"><span class="workspace-avatar">PT</span><div>TrustTwin workspace<small>Sensor monitoring</small></div></div>
+    <p class="nav-label">WORKSPACE</p>
+    <nav class="rail-nav" aria-label="Dashboard sections">
+      <a href="#section-hero" aria-current="location"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Overview</a>
+      <a href="#section-telemetry"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12h5l3-8 4 16 3-8h5"/></svg>Live telemetry</a>
+      <a href="#section-evidence"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z"/><path d="m8 12 3 3 5-6"/></svg>Trust intelligence</a>
+      <a href="#section-charts"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 3v17h17M8 15v-4m5 4V7m5 8V5"/></svg>Analytics</a>
+      <a href="#section-timeline"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Event timeline</a>
+      <a href="#section-technical"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#152c32"/><circle cx="15" cy="17" r="3" fill="#152c32"/></svg>Diagnostics</a>
+    </nav>
+    <div class="rail-bottom"><span class="rail-mark">TRUST BEFORE ACTION.</span><p>Better decisions begin with<br>measurements you can trust.</p><span class="prototype-tag">PROTOTYPE &middot; V1.0</span></div>
+  </aside>
 
   <!-- ── HEADER ──────────────────────────────────────────────────────── -->
   <header class="site-header">
     <div class="page-wrapper site-header__inner">
 
       <div class="site-header__brand">
-        <span class="wordmark">PulseTrust_</span>
+        <span class="header-breadcrumb">Workspace <span>/</span> <strong>Overview</strong></span>
         <span class="sub-mark">TrustTwin</span>
       </div>
 
@@ -50,7 +67,8 @@
     <!-- ── HERO: Trust Score + Digital Twin ──────────────────────────── -->
     <section class="section section--white" id="section-hero" aria-labelledby="hero-heading">
       <div class="page-wrapper">
-        <h1 id="hero-heading" class="sr-only">Sensor Trust Status</h1>
+        <div class="overview-heading"><div><p class="page-eyebrow">MACHINE MONITORING</p><h1 id="hero-heading">Every signal. A clearer picture.</h1><p class="page-description">Understand your machine. Verify your sensors. Act with confidence.</p></div><a class="overview-link" href="#section-charts">Explore analytics <span aria-hidden="true">&nearr;</span></a></div>
+        <div class="panel-heading"><h2>Machine overview</h2><span>Trust &amp; digital twin</span></div>
         <div class="card card--asymmetric hero-card reveal">
 
           <!-- Left: Trust Score -->
@@ -107,13 +125,10 @@
             </div>
           </div><!-- /hero-twin -->
 
-        </div><!-- /hero-card -->
-      </div>
-    
           <aside class="command-assessment" aria-label="Current assessment">
             <div class="assessment-head">
               <span class="assessment-eyebrow">Current assessment</span>
-              <span class="assessment-live"><i></i> ENGINE ONLINE</span>
+              <span class="assessment-live">TRUST ENGINE</span>
             </div>
             <div class="assessment-grid">
               <div><span>Sensor trust</span><strong id="cmd-trust">—</strong></div>
@@ -125,6 +140,10 @@
               <span>Telemetry</span><b>→</b><span>Features</span><b>→</b><span>IF</span><b>→</b><span>Trust</span>
             </div>
           </aside>
+        </div><!-- /hero-card -->
+      </div>
+
+
 
 </section>
 
@@ -242,6 +261,7 @@
 
     <section class="sensor-pair-section section--ash" aria-label="Redundant sensor trust">
       <div class="page-wrapper">
+        <div class="panel-heading"><h2>Sensor agreement</h2><span>Independent readings. Shared evidence.</span></div>
         <div class="sensor-pair-grid reveal">
           <article class="sensor-trust-card">
             <div class="sensor-card-top"><span>TEMP SENSOR 01</span><span class="sensor-dot"></span></div>
@@ -482,6 +502,7 @@
     </section>
 
   </main>
+  <footer class="dashboard-footer"><span>PulseTrust_ / TrustTwin</span><span>Trust before action.</span></footer>
 
   <!-- ── CHART EXPAND MODAL ─────────────────────────────────────────── -->
   <div class="modal-backdrop" id="modal-backdrop" data-open="false"

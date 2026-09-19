@@ -10,7 +10,9 @@
    ║  1. CONFIG                                               ║
    ╚══════════════════════════════════════════════════════════╝ */
 const CONFIG = {
-  API_BASE:           'http://127.0.0.1:8000',
+  API_BASE:           window.location.pathname.startsWith('/dashboard')
+    ? window.location.origin
+    : `${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname || '127.0.0.1'}:8000`,
   POLL_INTERVAL_MS:   5000,
   CONNECT_TIMEOUT_MS: 6000,
   HISTORY_MAX:        200,
@@ -486,6 +488,7 @@ function renderHeader() {
   }
 
   demoPill.hidden = (mode !== 'demo');
+  if (mode === 'live' && !connected) updatedEl.textContent = 'Disconnected - retrying';
 
   // Mirror device_id to technical details
   const techDev = document.getElementById('tech-device-id');
@@ -1442,51 +1445,44 @@ function initTelemetryCardClicks() {
 /* ╔══════════════════════════════════════════════════════════╗
    ║  20. DATA POLLING                                        ║
    ╚══════════════════════════════════════════════════════════╝ */
+let liveRequestPending = false;
 async function fetchLatest() {
-  if (appState.mode === 'demo') return;
-
+  if (appState.mode === 'demo' || liveRequestPending) return;
+  liveRequestPending = true;
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), CONFIG.CONNECT_TIMEOUT_MS);
   try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), CONFIG.CONNECT_TIMEOUT_MS);
-
-    const [telemetryRes, trustRes] = await Promise.all([
-      fetch(`${CONFIG.API_BASE}/api/telemetry/latest`, { signal: ctrl.signal }),
-      fetch(`${CONFIG.API_BASE}/api/trust/latest`, { signal: ctrl.signal }),
-    ]);
-
-    clearTimeout(timeout);
-
+    const telemetryRes = await fetch(`${CONFIG.API_BASE}/api/telemetry/latest`, { signal: ctrl.signal });
     if (!telemetryRes.ok) throw new Error(`Telemetry HTTP ${telemetryRes.status}`);
-    if (!trustRes.ok) throw new Error(`Trust HTTP ${trustRes.status}`);
-
     const telemetryRaw = await telemetryRes.json();
-    const trustRaw = await trustRes.json();
-
-    appState.lastRawPayload = {
-      telemetry: telemetryRaw,
-      trust: trustRaw,
-    };
-
-    const canonical = mapTrustPayload(trustRaw, telemetryRaw);
-    if (!canonical) throw new Error('mapTrustPayload returned null');
-
+    // Match the trust analysis to the device shown in the telemetry panel.
+    const deviceQuery = telemetryRaw.device_id
+      ? `?device_id=${encodeURIComponent(telemetryRaw.device_id)}` : '';
+    let trustRaw = null;
+    try {
+      const trustRes = await fetch(`${CONFIG.API_BASE}/api/trust/latest${deviceQuery}`, { signal: ctrl.signal });
+      if (trustRes.ok) trustRaw = await trustRes.json();
+    } catch (err) {
+      console.warn('Trust analysis unavailable; showing live telemetry.', err);
+    }
+    appState.lastRawPayload = { telemetry: telemetryRaw, trust: trustRaw };
+    const canonical = trustRaw ? mapTrustPayload(trustRaw, telemetryRaw) : mapBackendPayload(telemetryRaw);
     appState.data = canonical;
     appState.connected = true;
     appState.lastUpdated = new Date();
-
-    appState.history.push({ ...canonical });
-    if (appState.history.length > CONFIG.HISTORY_MAX) appState.history.shift();
-
+    const previous = appState.history[appState.history.length - 1];
+    if (!previous || previous.timestamp !== canonical.timestamp) {
+      appState.history.push({ ...canonical });
+      if (appState.history.length > CONFIG.HISTORY_MAX) appState.history.shift();
+    }
     renderAll();
   } catch (err) {
     console.error('PulseTrust live request failed:', err);
     appState.connected = false;
-
-    if (appState.data === null) {
-      enterDemoMode();
-    } else {
-      renderHeader();
-    }
+    renderHeader();
+  } finally {
+    clearTimeout(timeout);
+    liveRequestPending = false;
   }
 }
 
@@ -1584,12 +1580,12 @@ function renderCommandCenter() {
 
   const agreement = d.agreement ?? appState.lastRawPayload?.agreement ?? appState.lastRawPayload?.trust?.agreement;
   const corroborated = d.corroborated_event ?? appState.lastRawPayload?.corroborated_event ?? appState.lastRawPayload?.trust?.corroborated_event;
-  const anomalous = Boolean(d.anomaly_summary?.is_anomaly);
+  const anomalous = d.anomaly_summary?.is_anomaly;
 
   setText('cmd-trust', d.state ?? '—');
   setText('cmd-agreement', agreement === true ? 'AGREE' : agreement === false ? 'DISAGREE' : '—');
   setText('cmd-event', corroborated === true ? 'CORROBORATED' : corroborated === false ? 'NONE' : '—');
-  setText('cmd-anomaly', anomalous ? 'DETECTED' : 'CLEAR');
+  setText('cmd-anomaly', anomalous === true ? 'DETECTED' : anomalous === false ? 'CLEAR' : 'Unavailable');
 
   setText('sensor1-value', t1 != null ? Number(t1).toFixed(2) : '—');
   setText('sensor2-value', t2 != null ? Number(t2).toFixed(2) : '—');
@@ -1622,6 +1618,20 @@ function renderAll() {
    ║  22. INIT                                                ║
    ╚══════════════════════════════════════════════════════════╝ */
 document.addEventListener('DOMContentLoaded', () => {
+  const navigationLinks = [...document.querySelectorAll('.rail-nav a')];
+  const navigationObserver = new IntersectionObserver(entries => {
+    const visible = entries.filter(entry => entry.isIntersecting)
+      .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!visible) return;
+    navigationLinks.forEach(link => {
+      if (link.hash === `#${visible.target.id}`) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }, { rootMargin: '-5% 0px -55% 0px', threshold: 0 });
+  navigationLinks.forEach(link => {
+    const section = document.querySelector(link.hash);
+    if (section) navigationObserver.observe(section);
+  });
   initScrollReveal();
   initDigitalTwin();
   initRangeControls();
@@ -1630,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDemoButtons();
   chartModal.init();
 
-  // Start live connection; fall back to Demo Mode if backend unreachable
+  // Keep retrying the live backend, including after a temporary outage.
   startPolling();
 
   // Last-updated counter (refreshes every second)

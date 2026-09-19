@@ -458,6 +458,20 @@ The dashboard uses vanilla HTML, CSS, and JavaScript, keeping the visualization 
 
 ## Running the Dashboard
 
+The backend also serves the dashboard directly at **http://127.0.0.1:8000/dashboard/**.
+Start it from the repository root with:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+This uses the same origin for dashboard assets and API requests. Live readings
+are polled every five seconds and connection failures are retried automatically.
+If trust analysis is unavailable, raw telemetry remains visible. When using a
+separate local frontend server, the dashboard connects to port 8000 on the same
+hostname; local development origins on ports 5500, 5501, 3000, and 5173 are allowed.
+
 Start the backend:
 
 ```bash
