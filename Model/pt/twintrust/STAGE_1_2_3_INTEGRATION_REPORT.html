@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 1 + 2 + 3 Full Integration Report</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+    max-width: 1020px;
+    margin: 40px auto;
+    padding: 0 24px;
+    background-color: #fcfcfc;
+  }
+  h1 { border-bottom: 2px solid #eaecef; padding-bottom: 12px; margin-bottom: 8px; color: #1a1f2c; }
+  .subtitle { font-size: 1.1em; color: #586069; margin-bottom: 24px; }
+  .badge-pass { background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; display: inline-block; }
+  .badge-boundary { background-color: #0366d6; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; display: inline-block; }
+  .card { background: white; border: 1px solid #e1e4e8; border-radius: 8px; padding: 22px; margin: 22px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.92em; }
+  th, td { border: 1px solid #dfe2e5; padding: 10px 12px; text-align: left; }
+  th { background-color: #f6f8fa; font-weight: 600; }
+  tr:nth-child(even) { background-color: #fafbfc; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .tag-normal { color: #28a745; font-weight: bold; }
+  .tag-anom { color: #cb2431; font-weight: bold; }
+  .alert-box { background-color: #e6ffed; border-left: 5px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .alert-warning { background-color: #fffbdd; border-left: 5px solid #d99b00; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .code-inline { background: #f3f4f4; padding: 2px 5px; border-radius: 3px; font-family: SFMono-Regular, Consolas, monospace; font-size: 0.9em; }
+  pre { background: #f6f8fa; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 0.88em; border: 1px solid #e1e4e8; }
+  @media print {
+    body { max-width: 100%; margin: 0; padding: 10mm; background: white; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Stage 1 + 2 + 3 Full Integration Report</h1>
+<div class="subtitle">
+  <strong>TrustTwin / PulseTrust Machine Monitoring System</strong> &bull; Evaluation Date: September 2026<br>
+  <span class="badge-pass">154 / 154 Tests Passed (100%)</span> &bull; <span class="badge-boundary">Stage 4 Trust Score Strictly Excluded</span> &bull; <span>Validation Runtime: 19.17s</span>
+</div>
+
+<div class="card">
+  <h2>1. Executive Summary & Architecture Flow</h2>
+  <div class="alert-box">
+    <strong>Validation Scope Confirmed:</strong> End-to-end integration verified across Stage 1 (FeatureExtractor), Stage 2 (Isolation Forest), and Stage 3 (Deterministic Rule Engine). Statistical novelty and physical rule violations are captured independently as dual evidence streams.
+  </div>
+  <pre>
+  Raw ESP32 Telemetry Reading
+               │
+               ▼
+  Stage 1: FeatureExtractor (stateful rolling buffer, 34 features)
+               │
+      ┌────────┴────────┐
+      │                 │
+      ▼                 ▼
+  Stage 2:          Stage 3:
+  Isolation Forest  Rule Engine
+  (Statistical)     (Deterministic)
+      │                 │
+      └────────┬────────┘
+               │
+               ▼
+  Combined Evidence Record
+  [Stage 4 synthesis: NOT IMPLEMENTED]
+  </pre>
+</div>
+
+<div class="card">
+  <h2>2. Cross-Dataset Performance Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th class="text-center">Total</th>
+        <th class="text-center">Stage 1 Complete</th>
+        <th class="text-center">Stage 2 Eval</th>
+        <th class="text-center">Stage 2 Anom%</th>
+        <th class="text-right">Stage 2 Mean Score</th>
+        <th class="text-center">Stage 3 Violations</th>
+        <th class="text-center">Critical Alarms</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>normal_data.json</strong></td>
+        <td class="text-center">1,800</td>
+        <td class="text-center">1,798</td>
+        <td class="text-center">1,798</td>
+        <td class="text-center">10.0% (180)</td>
+        <td class="text-right tag-normal"><strong>+0.0422</strong></td>
+        <td class="text-center tag-normal"><strong>0 / 1,800 (0.0%)</strong></td>
+        <td class="text-center tag-normal"><strong>0</strong></td>
+      </tr>
+      <tr>
+        <td><strong>degradation_data.json</strong></td>
+        <td class="text-center">60</td>
+        <td class="text-center">58</td>
+        <td class="text-center">58</td>
+        <td class="text-center tag-anom">96.6% (56)</td>
+        <td class="text-right tag-anom"><strong>-0.1409</strong></td>
+        <td class="text-center tag-anom"><strong>35 / 60 (58.3%)</strong></td>
+        <td class="text-center tag-anom"><strong>6</strong></td>
+      </tr>
+      <tr>
+        <td><strong>stall_data.json</strong></td>
+        <td class="text-center">45</td>
+        <td class="text-center">43</td>
+        <td class="text-center">43</td>
+        <td class="text-center tag-anom">88.4% (38)</td>
+        <td class="text-right tag-anom"><strong>-0.1089</strong></td>
+        <td class="text-center tag-anom"><strong>20 / 45 (44.4%)</strong></td>
+        <td class="text-center tag-anom"><strong>5</strong></td>
+      </tr>
+      <tr>
+        <td><strong>fan_off_data.json</strong></td>
+        <td class="text-center">20</td>
+        <td class="text-center">9</td>
+        <td class="text-center">9</td>
+        <td class="text-center tag-anom">100.0% (9)</td>
+        <td class="text-right tag-anom"><strong>-0.0985</strong></td>
+        <td class="text-center tag-normal"><strong>0 / 20 (0.0%)</strong></td>
+        <td class="text-center tag-normal"><strong>0</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>3. Key Verification Findings by Dataset</h2>
+  <h3>Normal Baseline (normal_data.json)</h3>
+  <ul>
+    <li>Rows 0 and 1 are handled as warmup without fabricating history.</li>
+    <li>1,798 readings evaluated with a mean score of +0.0422 (inlier distribution).</li>
+    <li>Stage 3 produced exactly <strong>0 rule violations</strong>.</li>
+  </ul>
+
+  <h3>Degradation Scenario (degradation_data.json)</h3>
+  <ul>
+    <li>Readings 0..24 remain clean.</li>
+    <li>Reading #25: <code class="code-inline">HIGH_CURRENT</code> warning (0.287A &ge; 0.28A).</li>
+    <li>Reading #26: <code class="code-inline">LOW_RPM</code> warning (991.1 RPM &lt; 1000 RPM).</li>
+    <li>Reading #32: <code class="code-inline">HIGH_TEMPERATURE</code> warning (31.13°C &ge; 31.0°C).</li>
+    <li>Reading #54: <code class="code-inline">CRITICAL_TEMPERATURE</code> (33.54°C &ge; 33.5°C) and <code class="code-inline">OVERCURRENT</code> (0.411A &ge; 0.40A).</li>
+  </ul>
+
+  <h3>Fan Stall Scenario (stall_data.json)</h3>
+  <ul>
+    <li>Readings 0..24: Nominal healthy operation (0 violations).</li>
+    <li>Reading #40: <code class="code-inline">OVERCURRENT</code> triggers at 0.4037A.</li>
+    <li>Reading #44: <code class="code-inline">FAN_STALL</code> confirmed after 3 consecutive low-RPM readings (RPM = 1.37).</li>
+  </ul>
+
+  <h3>Fan OFF Intentional Shutdown (fan_off_data.json)</h3>
+  <ul>
+    <li>RPM &le; 50 RPM with fan commanded OFF correctly produces <strong>zero violations</strong>.</li>
+    <li>No false stall alarms occur during intentional machine stops.</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>4. Cross-Stage Evidence Sample (Reading #54)</h2>
+  <pre>
+1. Raw Telemetry:
+   RPM: 278.74 | Temp 1: 33.517°C | Current: 0.41071 A | Voltage: 4.9107 V | Fan: 1.0
+
+2. Stage 2 Evidence (Isolation Forest - Statistical Novelty):
+   is_anomaly     : True
+   anomaly_score  : -0.1632 (Deep Outlier)
+   raw_prediction : -1
+   features_used  : 34
+
+3. Stage 3 Evidence (Rule Engine - Deterministic Physical Rules):
+   engine_status  : CRITICAL
+   has_violations : True
+   Violations:
+     * [CRITICAL] CRITICAL_TEMPERATURE: Critical overtemperature: 33.54C >= 33.50C safety threshold.
+     * [CRITICAL] OVERCURRENT: Overcurrent detected: 0.4107A >= 0.4000A critical threshold.
+     * [WARNING] LOW_RPM: Fan commanded ON but running below normal speed: 278.7 RPM < 1000.0 RPM threshold.
+
+[Stage 4 synthesis: NOT IMPLEMENTED - raw evidence preserved independently]
+  </pre>
+</div>
+
+<div class="card">
+  <h2>5. Test Suite Verification</h2>
+  <div class="alert-box">
+    <strong>154 / 154 Automated Tests Passed in 16.94 seconds.</strong><br>
+    All unit and end-to-end integration tests pass with 100% success.
+  </div>
+</div>
+
+</body>
+</html>

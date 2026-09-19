@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage 3: Deterministic Rule Engine — Technical Report</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+    max-width: 980px;
+    margin: 40px auto;
+    padding: 0 24px;
+    background-color: #fcfcfc;
+  }
+  h1 { border-bottom: 2px solid #eaecef; padding-bottom: 12px; margin-bottom: 8px; color: #1a1f2c; }
+  .subtitle { font-size: 1.1em; color: #586069; margin-bottom: 24px; }
+  .badge-pass { background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; display: inline-block; }
+  .card { background: white; border: 1px solid #e1e4e8; border-radius: 8px; padding: 22px; margin: 22px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.92em; }
+  th, td { border: 1px solid #dfe2e5; padding: 10px 12px; text-align: left; }
+  th { background-color: #f6f8fa; font-weight: 600; }
+  tr:nth-child(even) { background-color: #fafbfc; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .sev-crit { background-color: #ffeef0; color: #cb2431; font-weight: bold; padding: 3px 6px; border-radius: 4px; display: inline-block; }
+  .sev-warn { background-color: #fff8c5; color: #735c0f; font-weight: bold; padding: 3px 6px; border-radius: 4px; display: inline-block; }
+  .tag-normal { color: #28a745; font-weight: bold; }
+  .alert-box { background-color: #e6ffed; border-left: 5px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .alert-warning { background-color: #fffbdd; border-left: 5px solid #d99b00; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .code-inline { background: #f3f4f4; padding: 2px 5px; border-radius: 3px; font-family: SFMono-Regular, Consolas, monospace; font-size: 0.9em; }
+  pre { background: #f6f8fa; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 0.9em; border: 1px solid #e1e4e8; }
+  @media print {
+    body { max-width: 100%; margin: 0; padding: 10mm; background: white; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Stage 3: Deterministic Rule Engine — Technical Report</h1>
+<div class="subtitle">
+  <strong>TrustTwin / PulseTrust Machine Monitoring System</strong> &bull; Evaluation Date: September 2026<br>
+  <span class="badge-pass">143 / 143 Unit Tests Passed (100%)</span> &bull; <span>Stage: Deterministic Domain Rules</span>
+</div>
+
+<div class="card">
+  <h2>1. Executive Summary</h2>
+  <p>The <strong>Rule Engine</strong> is a deterministic domain-logic verification component. It enforces explicit physical laws, electrical/mechanical boundaries, and cross-sensor operational states. Every violation includes an explicit rule ID, severity rating (<span class="sev-crit">CRITICAL</span> or <span class="sev-warn">WARNING</span>), explanatory description, and structured sensor evidence.</p>
+  <div class="alert-box">
+    <strong>Stage Boundary Confirmed:</strong> Stage 3 does NOT produce a final Trust Score or aggregate decision. Synthesis into a unified 0–100 Trust Score occurs in <strong>Stage 4</strong>.
+  </div>
+</div>
+
+<div class="card">
+  <h2>2. Implemented Rule Catalog</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Rule ID</th>
+        <th class="text-center">Severity</th>
+        <th>Monitored Condition</th>
+        <th>Trigger Logic</th>
+        <th>Priority / Subsumption</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code class="code-inline">HIGH_TEMPERATURE</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>Elevated operating temperature</td>
+        <td>31.0°C &le; T<sub>avg</sub> &lt; 33.5°C</td>
+        <td>Subsumed if CRITICAL_TEMPERATURE fires</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">CRITICAL_TEMPERATURE</code></td>
+        <td class="text-center"><span class="sev-crit">CRITICAL</span></td>
+        <td>Hazardous thermal buildup</td>
+        <td>T<sub>avg</sub> &ge; 33.5°C</td>
+        <td>Subsumes HIGH_TEMPERATURE</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">HIGH_CURRENT</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>High motor electrical load</td>
+        <td>0.28A &le; Current &lt; 0.40A</td>
+        <td>Subsumed if OVERCURRENT fires</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">OVERCURRENT</code></td>
+        <td class="text-center"><span class="sev-crit">CRITICAL</span></td>
+        <td>Severe overcurrent / motor lockup</td>
+        <td>Current &ge; 0.40A</td>
+        <td>Subsumes HIGH_CURRENT</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">FAN_STALL</code></td>
+        <td class="text-center"><span class="sev-crit">CRITICAL</span></td>
+        <td>Fan commanded ON but RPM stopped</td>
+        <td>fan == True AND RPM &le; 150 (&ge; 3 readings)</td>
+        <td>Subsumes LOW_RPM; stateful persistence</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">LOW_RPM</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>Degraded fan rotation speed</td>
+        <td>fan == True AND 150 &lt; RPM &lt; 1000</td>
+        <td>Does not fire if stalled</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">UNEXPECTED_RPM_WHEN_FAN_OFF</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>Rotation without command</td>
+        <td>fan == False AND RPM &gt; 50.0</td>
+        <td>Catches backdrive or driver leakage</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">TEMP_SENSOR_DISAGREEMENT</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>Dual temperature sensor gap</td>
+        <td>|T1 - T2| &gt; 2.0°C</td>
+        <td>Identifies sensor drift or detachment</td>
+      </tr>
+      <tr>
+        <td><code class="code-inline">INVALID_TELEMETRY</code></td>
+        <td class="text-center"><span class="sev-warn">WARNING</span></td>
+        <td>Physically impossible values</td>
+        <td>Values outside hardware specifications</td>
+        <td>Data quality integrity check</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Intentional Fan OFF Behavior:</strong> When fan is commanded OFF (<code class="code-inline">fan == False</code>) and RPM &le; 50.0, <strong>zero violations</strong> are produced. An intentional shutdown is normal operation.</p>
+</div>
+
+<div class="card">
+  <h2>3. Dataset Behavioral Evaluation</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th class="text-center">Total Readings</th>
+        <th class="text-center">Violations</th>
+        <th class="text-center">Critical</th>
+        <th>Primary Rules Triggered</th>
+        <th>Assessment</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>normal_data.json</strong></td>
+        <td class="text-center">1,800</td>
+        <td class="text-center tag-normal">0 (0.0%)</td>
+        <td class="text-center tag-normal">0 (0.0%)</td>
+        <td>None (Clean baseline)</td>
+        <td class="tag-normal">PASS: Zero false alarms</td>
+      </tr>
+      <tr>
+        <td><strong>degradation_data.json</strong></td>
+        <td class="text-center">60</td>
+        <td class="text-center">35 (58.3%)</td>
+        <td class="text-center">6 (10.0%)</td>
+        <td>LOW_RPM (33), HIGH_CURRENT (29), HIGH_TEMP (22), CRIT_TEMP (6), OVERCURRENT (5)</td>
+        <td class="tag-normal">PASS: Multi-phase drift detected</td>
+      </tr>
+      <tr>
+        <td><strong>stall_data.json</strong></td>
+        <td class="text-center">45</td>
+        <td class="text-center">20 (44.4%)</td>
+        <td class="text-center">5 (11.1%)</td>
+        <td>LOW_RPM (17), HIGH_TEMP (17), HIGH_CURRENT (15), OVERCURRENT (5), FAN_STALL (1)</td>
+        <td class="tag-normal">PASS: Stall confirmed at reading #44</td>
+      </tr>
+      <tr>
+        <td><strong>fan_off_data.json</strong></td>
+        <td class="text-center">20</td>
+        <td class="text-center tag-normal">0 (0.0%)</td>
+        <td class="text-center tag-normal">0 (0.0%)</td>
+        <td>None (Clean intentional OFF)</td>
+        <td class="tag-normal">PASS: No false stall alarms</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>4. Stateful Stall Confirmation Design</h2>
+  <p>To avoid false alarms during fan spin-up or transient dips, the Rule Engine requires consecutive readings below stall threshold:</p>
+  <pre>
+Reading 1: fan=ON, RPM=10.0  -> Counter=1 (Stall pending, no alarm)
+Reading 2: fan=ON, RPM=12.0  -> Counter=2 (Stall pending, no alarm)
+Reading 3: fan=ON, RPM=8.0   -> Counter=3 >= 3 -> [CRITICAL] FAN_STALL CONFIRMED!
+Recovery : fan=ON, RPM=1450  -> Counter reset to 0
+  </pre>
+  <p>State is isolated per <code class="code-inline">device_id</code>, preventing cross-plant interference.</p>
+</div>
+
+<div class="card">
+  <h2>5. Test Suite Verification</h2>
+  <div class="alert-box">
+    <strong>143 / 143 Automated Tests Passed in 1.77 seconds.</strong><br>
+    All 106 Stage 1 tests + 17 Stage 2 tests + 20 new Stage 3 tests executed cleanly without regressions.
+  </div>
+</div>
+
+</body>
+</html>

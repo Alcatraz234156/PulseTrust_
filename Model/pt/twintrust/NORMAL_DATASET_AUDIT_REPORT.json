@@ -1,0 +1,74 @@
+{
+  "audit_title": "Normal Dataset Classification Audit",
+  "project": "TrustTwin / PulseTrust Machine Monitoring System",
+  "dataset": "trust_engine/data/normal_data.json",
+  "timestamp": "2026-09-18T23:28:00Z",
+  "summary": {
+    "total_readings": 1800,
+    "state_breakdown": {
+      "NORMAL": 1620,
+      "CAUTION": 70,
+      "DEGRADING": 110,
+      "FAULT": 0
+    },
+    "decision_breakdown": {
+      "ALLOW": 1620,
+      "WARN": 180,
+      "BLOCK": 0
+    },
+    "rule_violations_detected": 0,
+    "isolation_forest_anomalies": 180
+  },
+  "temporal_signals_in_degrading_readings": {
+    "CURRENT_RISING": {
+      "count": 56,
+      "percentage": 50.9,
+      "condition": "current_rate > 0.005 A/s"
+    },
+    "RPM_FALLING": {
+      "count": 41,
+      "percentage": 37.3,
+      "condition": "rpm_rate < -10.0 RPM/s"
+    },
+    "TEMP_RISING": {
+      "count": 41,
+      "percentage": 37.3,
+      "condition": "temp_rate > 0.050 C/s"
+    },
+    "VIBRATION_RISING": {
+      "count": 17,
+      "percentage": 15.5,
+      "condition": "vibration_rate > 0.100 m/s^2/s"
+    }
+  },
+  "signal_combinations_in_degrading": {
+    "CURRENT_RISING": 27,
+    "RPM_FALLING": 21,
+    "CURRENT_RISING + TEMP_RISING": 15,
+    "TEMP_RISING": 15,
+    "CURRENT_RISING + RPM_FALLING": 8,
+    "VIBRATION_RISING": 6,
+    "RPM_FALLING + TEMP_RISING": 5,
+    "RPM_FALLING + VIBRATION_RISING": 4,
+    "TEMP_RISING + VIBRATION_RISING": 3,
+    "CURRENT_RISING + VIBRATION_RISING": 2,
+    "CURRENT_RISING + RPM_FALLING + TEMP_RISING": 2,
+    "CURRENT_RISING + TEMP_RISING + VIBRATION_RISING": 1,
+    "CURRENT_RISING + RPM_FALLING + VIBRATION_RISING": 1
+  },
+  "sequence_distribution": {
+    "total_sequences": 84,
+    "length_1_single_reading": 63,
+    "length_2_consecutive": 17,
+    "length_3_consecutive": 3,
+    "length_4_consecutive": 1,
+    "pct_isolated_single_reading": 75.0
+  },
+  "key_findings": [
+    "100% of the 110 DEGRADING readings were triggered by Stage 2 Isolation Forest anomalies acting as a prerequisite gate.",
+    "Stage 3 Rule Engine emitted 0 violations across all 1800 normal readings.",
+    "75% of DEGRADING occurrences are isolated 1-second blips caused by single-variable sensor quantization noise (e.g. DS18B20 1-bit step = 0.0625 C/s).",
+    "DEGRADING currently triggers on single-reading instantaneous derivatives without persistence or multi-sensor confirmation."
+  ],
+  "diagnosis": "Genuine state-logic defect. Instantaneous sensor noise coupled with borderline unsupervised anomalies (-0.0002) causes chatter between NORMAL, CAUTION, and DEGRADING rather than reflecting true physical trajectory."
+}
