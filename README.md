@@ -1,28 +1,26 @@
-PulseTrust_
+# PulseTrust_
 
 > **Trust Before Action.**
 
 **PulseTrust_** is an industrial sensor-trust and machine-monitoring prototype designed to prevent autonomous systems from making decisions based on unreliable sensor data.
 
-Instead of assuming that every sensor reading is trustworthy, PulseTrust_ introduces an evidence and trust layer between physical sensors and downstream autonomous decisions.
+Instead of assuming that every sensor reading is trustworthy, PulseTrust_ introduces an **evidence and trust layer** between physical sensors and downstream autonomous decisions.
 
 The system combines real-world ESP32 telemetry, behavioral anomaly detection, redundant sensor corroboration, deterministic trust scoring, component metadata, and AI-assisted reasoning to distinguish between:
 
-normal sensor behavior,
-
-potentially faulty or inconsistent sensors,
-
-and genuine abnormal process conditions reported by trustworthy sensors.
+- normal sensor behavior,
+- potentially faulty or inconsistent sensors,
+- and genuine abnormal process conditions reported by trustworthy sensors.
 
 A key principle of PulseTrust_ is:
 
-An abnormal measurement does not necessarily mean the sensor is faulty.
+> **An abnormal measurement does not necessarily mean the sensor is faulty.**
 
-A sensor may be accurately reporting a dangerous or unusual physical condition. PulseTrust_ therefore evaluates sensor trust separately from process health.
+A sensor may be accurately reporting a dangerous or unusual physical condition. PulseTrust_ therefore evaluates **sensor trust separately from process health**.
 
-Architecture
+---
 
-                    PulseTrust_ Architecture
+## Architecture
 
 ```text
                     PulseTrust_ Architecture
@@ -75,7 +73,9 @@ Telemetry  Digital   Trust / AI
 
 The deterministic trust engine remains operational independently of the AI reasoning layer.
 
-Gemini is used to interpret and explain evidence, not to directly calculate the core trust score.
+Gemini is used to **interpret and explain evidence**, not to directly calculate the core trust score.
+
+---
 
 ## Hardware & Sensors
 
@@ -90,6 +90,8 @@ The current physical prototype uses:
 - OLED display
 - LED and buzzer for physical status indication
 
+---
+
 ## Telemetry
 
 PulseTrust_ currently records:
@@ -97,30 +99,33 @@ PulseTrust_ currently records:
 - Temperature Sensor 1
 - Temperature Sensor 2
 - RPM
-
-Raw Hall-effect sensor value
-
+- Raw Hall-effect sensor value
 - Vibration / acceleration measurement
-
-Voltage
-
+- Voltage
 - Current
 - Power
-
-Fan state
-
+- Fan state
 - Device ID
-
-Server-generated timestamp
+- Server-generated timestamp
 
 Example telemetry:
 
 ```json
 {
-  "mode": "SIMULATION"
+  "device_id": "pulsetrust-plant-01",
+  "temp_1": 28.5,
+  "temp_2": 28.75,
+  "rpm": 1500.0,
+  "hall_raw": 320,
+  "vibration": 9.61,
+  "voltage": 4.85,
+  "current": 0.143,
+  "power": 0.694,
+  "fan": true
 }
-
 ```
+
+---
 
 # Sensor Trust Intelligence
 
@@ -129,27 +134,25 @@ Example telemetry:
 Historical telemetry is converted into behavioral features such as:
 
 - normalized value
-
-rate of change
-
-rolling mean
-
-rolling standard deviation
-
-deviation from baseline
-
-stuck-sensor score
+- rate of change
+- rolling mean
+- rolling standard deviation
+- deviation from baseline
+- stuck-sensor score
 
 These features allow PulseTrust_ to reason about sensor behavior rather than relying only on absolute thresholds.
 
-2. Behavioral Anomaly Detection
+---
 
-PulseTrust_ currently uses an Isolation Forest model to identify unusual sensor behavior.
+## 2. Behavioral Anomaly Detection
+
+PulseTrust_ currently uses an **Isolation Forest** model to identify unusual sensor behavior.
 
 The current prototype demonstrates this primarily using the redundant temperature sensors.
 
 The model can identify behaviors such as:
 
+```text
 Sudden spike
      ↓
 Behavioral anomaly
@@ -161,19 +164,23 @@ Potential stuck-sensor anomaly
 Unexpected continuous drift
      ↓
 Behavioral anomaly
+```
 
 For the current hackathon prototype, the temperature anomaly model is bootstrapped using synthetic baseline telemetry representing normal temperature behavior.
 
 The resulting anomaly evidence is then combined with other evidence rather than being treated as proof that a sensor has failed.
 
-Anomaly detection and sensor trust are intentionally separate concepts.
+> Anomaly detection and sensor trust are intentionally separate concepts.
 
-3. Cross-Sensor Corroboration
+---
+
+## 3. Cross-Sensor Corroboration
 
 PulseTrust_ compares redundant sensor measurements to determine whether independent sensors support the same physical observation.
 
 For example:
 
+```text
 Sensor 1: 45.0 °C
 Sensor 2: 28.5 °C
 
@@ -184,9 +191,11 @@ Sensors disagree
 
 Result:
 Sensor 1 becomes significantly less trustworthy.
+```
 
 But:
 
+```text
 Sensor 1: 44.7 °C
 Sensor 2: 44.6 °C
 
@@ -197,13 +206,17 @@ Sensors strongly agree
 Result:
 The process may be abnormal,
 while the measurements remain trustworthy.
+```
 
-This allows PulseTrust_ to distinguish sensor failure from a genuine physical event.
+This allows PulseTrust_ to distinguish **sensor failure from a genuine physical event**.
 
-4. Trust Engine
+---
+
+## 4. Trust Engine
 
 The trust engine combines:
 
+```text
 Behavioral anomaly evidence
             +
 Sensor agreement
@@ -211,17 +224,21 @@ Sensor agreement
 Cross-sensor corroboration
             ↓
         Trust Score
+```
 
 Current trust states are:
 
+```text
 80–100   TRUSTED
 50–79    DEGRADED
 0–49     UNTRUSTED
+```
 
 The current scores are prototype evidence scores and should not be interpreted as calibrated probabilities of sensor correctness.
 
 Example output:
 
+```json
 {
   "trust_score": 95.0,
   "state": "TRUSTED",
@@ -237,17 +254,21 @@ Example output:
   },
   "corroborated_event": true
 }
+```
 
 Here, both sensors are behaving unusually but corroborate each other.
 
-PulseTrust_ therefore preserves high sensor trust while allowing the downstream system to recognize that the physical process itself may be abnormal.
+PulseTrust_ therefore preserves high **sensor trust** while allowing the downstream system to recognize that the **physical process itself may be abnormal**.
 
-5. AI-Assisted Reasoning
+---
+
+## 5. AI-Assisted Reasoning
 
 PulseTrust_ includes a Gemini-based reasoning layer.
 
 Gemini receives:
 
+```text
 Current telemetry
         +
 Trust Engine result
@@ -257,22 +278,22 @@ Anomaly evidence
 Sensor agreement evidence
         ↓
 AI Explanation
+```
 
 It generates:
 
-a concise trust summary
+- a concise trust summary
+- sensor assessment
+- process assessment
+- recommended action
 
-sensor assessment
-
-process assessment
-
-recommended action
-
-The AI layer does not calculate or override the deterministic trust score.
+The AI layer does **not** calculate or override the deterministic trust score.
 
 If AI reasoning becomes unavailable, the core trust engine continues functioning.
 
-Component Intelligence
+---
+
+## Component Intelligence
 
 PulseTrust_ also contains an experimental component-identification and profiling layer.
 
@@ -282,336 +303,312 @@ The architecture is designed to support future automatic ingestion of manufactur
 
 Detailed datasheet extraction is currently experimental and is not required by the runtime trust pipeline.
 
-Backend Setup
+---
 
-1. Enter the backend directory
+# Backend Setup
 
+## 1. Enter the backend directory
+
+```bash
 cd backend
+```
 
-2. Create a virtual environment
+## 2. Create a virtual environment
 
+```bash
 python -m venv .venv
+```
 
-3. Activate the virtual environment
+## 3. Activate the virtual environment
 
-Windows PowerShell
+### Windows PowerShell
 
+```powershell
 .\.venv\Scripts\Activate.ps1
+```
 
-macOS/Linux
+### macOS/Linux
 
+```bash
 source .venv/bin/activate
+```
 
-4. Install dependencies
+## 4. Install dependencies
 
+```bash
 python -m pip install -r requirements.txt
+```
 
-5. Configure environment variables
+## 5. Configure environment variables
 
-Copy .env.example to .env.
+Copy `.env.example` to `.env`.
 
 Configure the required services:
 
+```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_backend_supabase_key
 
 GEMINI_API_KEY=your_gemini_api_key
 
 MOUSER_API_KEY=your_mouser_api_key
+```
 
-Never commit .env or expose backend credentials in ESP32 firmware or frontend code.
+> Never commit `.env` or expose backend credentials in ESP32 firmware or frontend code.
 
-6. Start the API
+## 6. Start the API
 
+```bash
 python -m uvicorn app.main:app --reload
+```
 
 The API will be available at:
 
+```text
 http://127.0.0.1:8000
+```
 
 Swagger documentation:
 
+```text
 http://127.0.0.1:8000/docs
+```
 
-ESP32 / LAN Setup
+---
 
-The ESP32 cannot access the FastAPI server using 127.0.0.1, because that address refers to the ESP32 itself from its perspective.
+# ESP32 / LAN Setup
+
+The ESP32 cannot access the FastAPI server using `127.0.0.1`, because that address refers to the ESP32 itself from its perspective.
 
 Start FastAPI on all network interfaces:
 
+```bash
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 Find the backend machine's local IPv4 address on Windows:
 
+```powershell
 ipconfig
+```
 
 Configure the ESP32 telemetry endpoint using that address:
 
+```text
 http://192.168.1.100:8000/api/telemetry
+```
 
-Replace 192.168.1.100 with the actual IPv4 address of the machine running PulseTrust_.
+Replace `192.168.1.100` with the actual IPv4 address of the machine running PulseTrust_.
 
 The ESP32 and backend machine must be reachable over the same network.
 
-Your operating system firewall may need to allow incoming connections on port 8000.
+> Your operating system firewall may need to allow incoming connections on port `8000`.
 
-API
+---
 
-Method
+# API
 
-Endpoint
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | API status and project metadata |
+| `GET` | `/health` | Backend/database health |
+| `POST` | `/api/telemetry` | Store a telemetry reading |
+| `GET` | `/api/telemetry` | Retrieve telemetry history |
+| `GET` | `/api/telemetry/latest` | Retrieve latest telemetry |
+| `GET` | `/api/trust/latest` | Calculate trust from live stored telemetry |
+| `GET` | `/api/trust/explain` | Trust result with Gemini-assisted explanation |
+| `GET` | `/api/trust/demo/normal` | Simulate normal operation |
+| `GET` | `/api/trust/demo/sensor-failure` | Simulate a faulty/inconsistent sensor |
+| `GET` | `/api/trust/demo/real-event` | Simulate a genuine corroborated process event |
 
-Description
+`GET /api/telemetry` supports optional `device_id` and `limit` query parameters.
 
-GET
+---
 
-/
-
-API status and project metadata
-
-GET
-
-/health
-
-Backend/database health
-
-POST
-
-/api/telemetry
-
-Store a telemetry reading
-
-GET
-
-/api/telemetry
-
-Retrieve telemetry history
-
-GET
-
-/api/telemetry/latest
-
-Retrieve latest telemetry
-
-GET
-
-/api/trust/latest
-
-Calculate trust from live stored telemetry
-
-GET
-
-/api/trust/explain
-
-Trust result with Gemini-assisted explanation
-
-GET
-
-/api/trust/demo/normal
-
-Simulate normal operation
-
-GET
-
-/api/trust/demo/sensor-failure
-
-Simulate a faulty/inconsistent sensor
-
-GET
-
-/api/trust/demo/real-event
-
-Simulate a genuine corroborated process event
-
-GET /api/telemetry supports optional device_id and limit query parameters.
-
-Web Dashboard
+# Web Dashboard
 
 PulseTrust_ includes an interactive web dashboard for visualizing live telemetry, sensor trust, anomaly evidence, and machine state.
 
 The dashboard provides:
 
-Overall trust score and trust state
-
-Digital twin visualization of the monitored fan
-
-Live temperature, RPM, electrical, and vibration telemetry
-
-Isolation Forest anomaly evidence
-
-Sensor-validation and trust evidence
-
-Trust-score breakdown
-
-Human-readable decision explanations
-
-Historical telemetry charts
-
-Machine-state timeline
-
-Expandable technical diagnostics
-
-Live and simulation operating modes
+- Overall trust score and trust state
+- Digital twin visualization of the monitored fan
+- Live temperature, RPM, electrical, and vibration telemetry
+- Isolation Forest anomaly evidence
+- Sensor-validation and trust evidence
+- Trust-score breakdown
+- Human-readable decision explanations
+- Historical telemetry charts
+- Machine-state timeline
+- Expandable technical diagnostics
+- Live and simulation operating modes
 
 The frontend communicates with the FastAPI backend and presents trust-engine output separately from raw sensor telemetry.
 
-Frontend Structure
+## Frontend Structure
 
+```text
 frontend/
 ├── index.html
 ├── styles.css
 └── script.js
+```
 
 The dashboard uses vanilla HTML, CSS, and JavaScript, keeping the visualization layer lightweight and independent of a frontend framework.
 
-Running the Dashboard
+## Running the Dashboard
 
 Start the backend:
 
+```bash
 cd backend
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 Then serve the frontend from its directory:
 
+```bash
 cd frontend
 python -m http.server 5500
+```
 
 Open:
 
+```text
 http://127.0.0.1:5500
+```
 
-The frontend API base URL can be configured in script.js.
+The frontend API base URL can be configured in `script.js`.
 
-Simulation Mode
+---
+
+# Simulation Mode
 
 PulseTrust_ includes explicitly labelled simulation endpoints for demonstrating trust behavior without requiring the physical hardware to be connected.
 
-Normal Operation
+### Normal Operation
 
+```text
 /api/trust/demo/normal
+```
 
 Expected behavior:
 
+```text
 Sensors behave normally
 Sensors agree
         ↓
 TRUSTED
+```
 
-Sensor Failure
+### Sensor Failure
 
+```text
 /api/trust/demo/sensor-failure
+```
 
 Expected behavior:
 
+```text
 One sensor becomes anomalous
 Sensors disagree
         ↓
 DEGRADED
+```
 
-Genuine Process Event
+### Genuine Process Event
 
+```text
 /api/trust/demo/real-event
+```
 
 Expected behavior:
 
+```text
 Both sensors become anomalous
 Both report the same physical change
         ↓
 Corroborated Event
         ↓
 Sensors remain highly trusted
+```
 
 Simulation responses contain:
 
+```json
 {
   "mode": "SIMULATION"
 }
+```
 
 Live trust responses contain:
 
+```json
 {
   "mode": "LIVE"
 }
+```
 
 This keeps simulated demonstration data clearly separated from real telemetry.
 
-Database
+---
 
-Telemetry is stored in the Supabase sensor_readings table.
+# Database
+
+Telemetry is stored in the Supabase `sensor_readings` table.
 
 Each reading contains the sensor measurements, actuator state, device identifier, and server timestamp required for historical analysis and visualization.
 
-Current Status
+---
+
+# Current Status
 
 The PulseTrust_ prototype currently supports:
 
-Real physical sensor acquisition
+- Real physical sensor acquisition
+- ESP32 Wi-Fi telemetry transmission
+- Redundant temperature sensing
+- RPM sensing
+- Electrical telemetry
+- Motion/acceleration monitoring
+- FastAPI telemetry ingestion
+- Supabase historical telemetry storage
+- Feature extraction from sensor history
+- Isolation Forest anomaly detection
+- Stuck-sensor detection evidence
+- Redundant sensor agreement analysis
+- Cross-sensor corroboration
+- Per-sensor trust scoring
+- Overall trust states
+- Live trust analysis
+- Simulation scenarios
+- Gemini-assisted trust explanations
+- Component metadata lookup
+- Interactive web dashboard
+- Digital twin visualization
+- Live telemetry visualization
+- Historical telemetry charts
+- Trust evidence visualization
+- Trust-score breakdown
+- Machine-state timeline
+- Expandable technical diagnostics
+- Physical fan, OLED, LED, and buzzer hardware
 
-ESP32 Wi-Fi telemetry transmission
+---
 
-Redundant temperature sensing
+# Prototype Scope
 
-RPM sensing
-
-Electrical telemetry
-
-Motion/acceleration monitoring
-
-FastAPI telemetry ingestion
-
-Supabase historical telemetry storage
-
-Feature extraction from sensor history
-
-Isolation Forest anomaly detection
-
-Stuck-sensor detection evidence
-
-Redundant sensor agreement analysis
-
-Cross-sensor corroboration
-
-Per-sensor trust scoring
-
-Overall trust states
-
-Live trust analysis
-
-Simulation scenarios
-
-Gemini-assisted trust explanations
-
-Component metadata lookup
-
-Interactive web dashboard
-
-Digital twin visualization
-
-Live telemetry visualization
-
-Historical telemetry charts
-
-Trust evidence visualization
-
-Trust-score breakdown
-
-Machine-state timeline
-
-Expandable technical diagnostics
-
-Physical fan, OLED, LED, and buzzer hardware
-
-Prototype Scope
-
-The current implementation is a hackathon prototype, not a certified industrial safety system.
+The current implementation is a **hackathon prototype**, not a certified industrial safety system.
 
 The Isolation Forest model currently demonstrates behavioral trust analysis primarily on temperature telemetry and is bootstrapped using synthetic baseline data.
 
 Trust scores are heuristic evidence scores rather than calibrated failure probabilities.
 
-The architecture is designed so that additional sensor types, historical datasets, specification validation, cloud infrastructure, and more advanced cross-sensor reasoning can be incorporated without changing the core Trust Before Action principle.
+The architecture is designed so that additional sensor types, historical datasets, specification validation, cloud infrastructure, and more advanced cross-sensor reasoning can be incorporated without changing the core **Trust Before Action** principle.
 
-Project Direction
+---
+
+# Project Direction
 
 Modern autonomous systems increasingly depend on physical sensors to decide when to start, stop, cool, accelerate, alert, isolate, or otherwise interact with the real world.
 
