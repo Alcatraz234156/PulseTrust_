@@ -1,13 +1,13 @@
 ﻿// PulseTrust - script.js
 /* ============================================================
-   PulseTrust TrustTwin â€” script.js
-   Machine Trust Cockpit â€” Frontend Logic
+   PulseTrust TrustTwin — script.js
+   Machine Trust Cockpit — Frontend Logic
    ============================================================ */
 
 'use strict';
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  1. CONFIG                                               â•‘
+   ║  1. CONFIG                                               ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const CONFIG = {
   API_BASE:           'https://pu-3abdd5d1a2674b0680fb379ab86772bd.ecs.ap-south-1.on.aws',
@@ -17,15 +17,15 @@ const CONFIG = {
 };
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  2. mapBackendPayload() â€” FIELD NORMALISATION ONLY       â•‘
-   â•‘                                                          â•‘
-   â•‘  This function maps raw backend field names into the     â•‘
-   â•‘  frontend's canonical shape. It performs NO computation, â•‘
-   â•‘  estimation, or inference of Trust Engine outputs.       â•‘
-   â•‘                                                          â•‘
-   â•‘  The ONLY derived value: temp_avg (arithmetic from two   â•‘
-   â•‘  raw sensors). All Trust Engine fields are passed        â•‘
-   â•‘  through as-is or set to null. Never inferred.           â•‘
+   ║  2. mapBackendPayload() — FIELD NORMALISATION ONLY       ║
+   ║                                                          ║
+   ║  This function maps raw backend field names into the     ║
+   ║  frontend's canonical shape. It performs NO computation, ║
+   ║  estimation, or inference of Trust Engine outputs.       ║
+   ║                                                          ║
+   ║  The ONLY derived value: temp_avg (arithmetic from two   ║
+   ║  raw sensors). All Trust Engine fields are passed        ║
+   ║  through as-is or set to null. Never inferred.           ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function mapBackendPayload(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -35,7 +35,7 @@ function mapBackendPayload(raw) {
   const temp1 = g('temp_1');
   const temp2 = g('temp_2');
   // temp_avg: the ONLY arithmetic derived value (two sensor readings averaged).
-  // This is NOT a health inference â€” it is the sensor's composite reading.
+  // This is NOT a health inference — it is the sensor's composite reading.
   const tempAvg = (temp1 !== null && temp2 !== null)
     ? parseFloat(((temp1 + temp2) / 2).toFixed(2))
     : null;
@@ -57,7 +57,7 @@ function mapBackendPayload(raw) {
       hall_raw:  g('hall_raw') ?? null,
     },
 
-    // Trust Engine fields â€” PASS-THROUGH ONLY.
+    // Trust Engine fields — PASS-THROUGH ONLY.
     // Set to null when backend does not provide them.
     // DO NOT compute these from raw telemetry.
     trust_score:      g('trust_score'),
@@ -129,7 +129,15 @@ function mapTrustPayload(raw, telemetry = null) {
     },
 
     temporal_summary: null,
-    score_breakdown: null,
+    score_breakdown: {
+      live: true,
+      overall_trust: raw.trust_score ?? null,
+      sensor_1_trust: s1.trust_score ?? null,
+      sensor_2_trust: s2.trust_score ?? null,
+      sensor_1_anomaly_score: s1.anomaly_score ?? null,
+      sensor_2_anomaly_score: s2.anomaly_score ?? null,
+      agreement_score: raw.agreement?.agreement_score ?? null,
+    },
     reasons: raw.reasons ?? [],
     agreement: raw.agreement ?? null,
     corroborated_event: raw.corroborated_event ?? false,
@@ -137,8 +145,8 @@ function mapTrustPayload(raw, telemetry = null) {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  3. DEMO HISTORY GENERATOR                               â•‘
-   â•‘     (must be defined before DEMO_SCENARIOS uses it)      â•‘
+   ║  3. DEMO HISTORY GENERATOR                               ║
+   ║     (must be defined before DEMO_SCENARIOS uses it)      ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function generateDemoHistory(scenario) {
   const history = [];
@@ -222,10 +230,10 @@ function generateDemoHistory(scenario) {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  3b. DEMO MODE SCENARIOS                                 â•‘
-   â•‘      Pre-authored complete contract objects.             â•‘
-   â•‘      No computation â€” backend contract reproduced        â•‘
-   â•‘      verbatim as representative sample data.             â•‘
+   ║  3b. DEMO MODE SCENARIOS                                 ║
+   ║      Pre-authored complete contract objects.             ║
+   ║      No computation — backend contract reproduced        ║
+   ║      verbatim as representative sample data.             ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const DEMO_SCENARIOS = {
   HEALTHY: {
@@ -303,7 +311,7 @@ const DEMO_SCENARIOS = {
     },
     reasons: [
       'Isolation Forest detected unusual operating pattern',
-      'Temperature above warning threshold (53.5 Â°C / limit 50.0 Â°C)',
+      'Temperature above warning threshold (53.5 °C / limit 50.0 °C)',
       'Current consumption elevated above baseline',
     ],
     history: generateDemoHistory('ANOMALY'),
@@ -405,9 +413,9 @@ const DEMO_SCENARIOS = {
       critical_penalty: 25, degradation_penalty: 6,
     },
     reasons: [
-      'Fan stopped â€” critical rule violated',
-      'Temperature critical (80.2 Â°C / limit 75.0 Â°C)',
-      'RPM stall detected â€” motor not rotating',
+      'Fan stopped — critical rule violated',
+      'Temperature critical (80.2 °C / limit 75.0 °C)',
+      'RPM stall detected — motor not rotating',
       'Isolation Forest: extreme deviation from healthy pattern',
     ],
     history: generateDemoHistory('FAULT'),
@@ -415,7 +423,7 @@ const DEMO_SCENARIOS = {
 };
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  4. APPLICATION STATE                                    â•‘
+   ║  4. APPLICATION STATE                                    ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const appState = {
   mode:            'live',     // 'live' | 'demo'
@@ -435,7 +443,7 @@ const appState = {
 };
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  6. SCROLL REVEAL                                        â•‘
+   ║  6. SCROLL REVEAL                                        ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function initScrollReveal() {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -457,7 +465,7 @@ function initScrollReveal() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  7. RENDER â€” HEADER                                      â•‘
+   ║  7. RENDER — HEADER                                      ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderHeader() {
   const dot       = document.getElementById('status-dot');
@@ -476,13 +484,13 @@ function renderHeader() {
     dot.className = 'status-dot status-dot--offline';
   }
 
-  deviceEl.textContent = data?.device_id ?? 'â€”';
+  deviceEl.textContent = data?.device_id ?? '—';
 
   if (lastUpdated) {
     const s = Math.round((Date.now() - lastUpdated.getTime()) / 1000);
     updatedEl.textContent = s < 5 ? 'just now' : `${s}s ago`;
   } else {
-    updatedEl.textContent = 'â€”';
+    updatedEl.textContent = '—';
   }
 
   demoPill.hidden = (mode !== 'demo');
@@ -490,11 +498,11 @@ function renderHeader() {
 
   // Mirror device_id to technical details
   const techDev = document.getElementById('tech-device-id');
-  if (techDev) techDev.textContent = data?.device_id ?? 'â€”';
+  if (techDev) techDev.textContent = data?.device_id ?? '—';
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  8. RENDER â€” HERO (Trust Score)                          â•‘
+   ║  8. RENDER — HERO (Trust Score)                          ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderHero() {
   const data = appState.data;
@@ -512,7 +520,7 @@ function renderHero() {
     // Score number
     document.getElementById('trust-score-number').textContent = trustScore.toFixed(1);
 
-    // Radial progress ring (circumference 2Ï€ Ã— 68 â‰ˆ 427.26)
+    // Radial progress ring (circumference 2π × 68 ≈ 427.26)
     const circ   = 427.26;
     const pct    = Math.min(Math.max(trustScore, 0), 100) / 100;
     const offset = circ - pct * circ;
@@ -526,12 +534,12 @@ function renderHero() {
     dot.style.background = stateToColor(state);
 
     const lbl = document.getElementById('state-label');
-    lbl.textContent  = state ?? 'â€”';
+    lbl.textContent  = state ?? '—';
     lbl.style.color  = stateToColor(state);
 
     // Decision badge
     const badge = document.getElementById('decision-badge');
-    badge.textContent       = decision ?? 'â€”';
+    badge.textContent       = decision ?? '—';
     badge.style.background  = stateToColor(state);
   } else {
     avail.hidden   = true;
@@ -540,10 +548,10 @@ function renderHero() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  9. RENDER â€” DIGITAL TWIN                                â•‘
+   ║  9. RENDER — DIGITAL TWIN                                ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function buildFanSVG() {
-  // Monoline fan: hub + 6 curved blades. Center 120,120, viewBox 240Ã—240.
+  // Monoline fan: hub + 6 curved blades. Center 120,120, viewBox 240×240.
   const cx = 120, cy = 120, hubR = 14;
   const blades = [];
   for (let b = 0; b < 6; b++) {
@@ -609,7 +617,7 @@ function renderDigitalTwin() {
   if (!fanGroup) return;
 
   // RPM display (always from raw telemetry)
-  rpmEl.textContent = (rpm !== null && !isNaN(rpm)) ? String(Math.round(rpm)) : 'â€”';
+  rpmEl.textContent = (rpm !== null && !isNaN(rpm)) ? String(Math.round(rpm)) : '—';
 
   // Fan badge
   if (data?.telemetry) {
@@ -618,9 +626,9 @@ function renderDigitalTwin() {
     badgeEl.style.background = fanOn ? 'rgba(61,107,79,0.08)' : 'var(--color-mist)';
   }
 
-  deviceEl.textContent = data?.device_id ?? 'â€”';
+  deviceEl.textContent = data?.device_id ?? '—';
 
-  // Rotation speed â€” always based on actual RPM (no Trust Engine dependency)
+  // Rotation speed — always based on actual RPM (no Trust Engine dependency)
   if (!reduceMotion) {
     if (fanOn && rpm > 0) {
       const dur = Math.min(Math.max(60000 / rpm, 250), 4000);
@@ -631,7 +639,7 @@ function renderDigitalTwin() {
     }
   }
 
-  // Stroke color â€” ONLY changes if state is explicitly in the payload.
+  // Stroke color — ONLY changes if state is explicitly in the payload.
   // If state === null (Trust Engine not available), stays neutral Graphite.
   let stroke = 'var(--color-graphite)';
   let warnOpacity = '0';
@@ -646,33 +654,33 @@ function renderDigitalTwin() {
     stroke = 'var(--state-offline)';
     fanGroup.classList.remove('fan-rotating');
   }
-  // state === null: no branch â€” stroke stays 'var(--color-graphite)'
+  // state === null: no branch — stroke stays 'var(--color-graphite)'
 
   setFanStroke(stroke);
   if (fanWarn) fanWarn.setAttribute('opacity', warnOpacity);
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  10. RENDER â€” TELEMETRY CARDS                            â•‘
+   ║  10. RENDER — TELEMETRY CARDS                            ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderTelemetry() {
   const t = appState.data?.telemetry;
   if (!t) return;
 
-  const fmt  = (v, d = 1) => (v !== null && v !== undefined && !isNaN(v)) ? Number(v).toFixed(d) : 'â€”';
-  const fmtI = (v) => (v !== null && v !== undefined && !isNaN(v)) ? String(Math.round(v)) : 'â€”';
+  const fmt  = (v, d = 1) => (v !== null && v !== undefined && !isNaN(v)) ? Number(v).toFixed(d) : '—';
+  const fmtI = (v) => (v !== null && v !== undefined && !isNaN(v)) ? String(Math.round(v)) : '—';
 
   setTxt('tel-temp-avg', fmt(t.temp_avg));
   setTxt('tel-temp-1',   fmt(t.temp_1));
   setTxt('tel-temp-2',   fmt(t.temp_2));
 
   setTxt('tel-rpm',      fmtI(t.rpm));
-  setTxt('tel-hall-raw', t.hall_raw !== null ? fmtI(t.hall_raw) : 'â€”');
+  setTxt('tel-hall-raw', t.hall_raw !== null ? fmtI(t.hall_raw) : '—');
 
   setTxt('tel-power',   fmt(t.power, 2));
   setTxt('tel-voltage', fmt(t.voltage, 2));
   setTxt('tel-current', fmt(t.current, 3));
-  setTxt('tel-fan',     t.fan_on !== null ? (t.fan_on ? 'ON' : 'OFF') : 'â€”');
+  setTxt('tel-fan',     t.fan_on !== null ? (t.fan_on ? 'ON' : 'OFF') : '—');
 
   setTxt('tel-vibration', fmt(t.vibration, 3));
 
@@ -685,7 +693,7 @@ function renderTelemetry() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  11. RENDER â€” EVIDENCE PANELS                            â•‘
+   ║  11. RENDER — EVIDENCE PANELS                            ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderEvidence() {
   renderIsolationForest();
@@ -703,8 +711,8 @@ function renderIsolationForest() {
   }
 
   const isAnomaly  = anomaly.is_anomaly;
-  const score      = anomaly.anomaly_score      !== null ? anomaly.anomaly_score.toFixed(4) : 'â€”';
-  const normScore  = anomaly.normalized_score   !== null ? (anomaly.normalized_score * 100).toFixed(1) + '%' : 'â€”';
+  const score      = anomaly.anomaly_score      !== null ? anomaly.anomaly_score.toFixed(4) : '—';
+  const normScore  = anomaly.normalized_score   !== null ? (anomaly.normalized_score * 100).toFixed(1) + '%' : '—';
 
   body.innerHTML = `
     <div class="if-status ${isAnomaly ? 'if-status--anomaly' : 'if-status--normal'}">
@@ -721,11 +729,11 @@ function renderIsolationForest() {
       </div>
       <div class="if-metric-row">
         <span class="if-metric-label">Model status</span>
-        <span class="if-metric-value">${esc(anomaly.model_status ?? 'â€”')}</span>
+        <span class="if-metric-value">${esc(anomaly.model_status ?? '—')}</span>
       </div>
       <div class="if-metric-row">
         <span class="if-metric-label">Features used</span>
-        <span class="if-metric-value">${esc(String(anomaly.features_used ?? 'â€”'))}</span>
+        <span class="if-metric-value">${esc(String(anomaly.features_used ?? '—'))}</span>
       </div>
     </div>`;
 }
@@ -766,7 +774,7 @@ function renderRuleEngine() {
         <span class="rule-label ${pass ? '' : 'rule-label--fail'}">${esc(chk.key)}</span>
       </div>`;
     if (violation) {
-      const detail = violation.text ? esc(violation.text) : `${esc(violation.rule)} â€” ${esc(violation.severity)} â€” ${esc(String(violation.metric))}: ${esc(String(violation.value))} / threshold: ${esc(String(violation.threshold))}`;
+      const detail = violation.text ? esc(violation.text) : `${esc(violation.rule)} — ${esc(violation.severity)} — ${esc(String(violation.metric))}: ${esc(String(violation.value))} / threshold: ${esc(String(violation.threshold))}`;
       html += `<div class="rule-violation-detail">${detail}</div>`;
     }
     html += `</div>`;
@@ -775,8 +783,8 @@ function renderRuleEngine() {
 
   const total = violations.length;
   const summaryText = total === 0
-    ? '0 violations â€” all rules satisfied'
-    : `${ruleSummary.warning_count ?? 0} warning Â· ${ruleSummary.critical_count ?? 0} critical`;
+    ? '0 violations — all rules satisfied'
+    : `${ruleSummary.warning_count ?? 0} warning · ${ruleSummary.critical_count ?? 0} critical`;
 
   body.innerHTML = `<div class="rule-list">${rows}</div>
     <p class="rule-summary-text">${summaryText}</p>`;
@@ -794,7 +802,7 @@ function renderTemporal() {
   const pers = temporal.persistence ?? {};
 
   const metrics = [
-    { label: 'Temperature', rate: temporal.temp_rate,      count: pers.temp      ?? 0, unit: 'Â°C/s' },
+    { label: 'Temperature', rate: temporal.temp_rate,      count: pers.temp      ?? 0, unit: '°C/s' },
     { label: 'RPM',         rate: temporal.rpm_rate,       count: pers.rpm       ?? 0, unit: '/s'   },
     { label: 'Current',     rate: temporal.current_rate,   count: pers.current   ?? 0, unit: 'A/s'  },
     { label: 'Vibration',   rate: temporal.vibration_rate, count: pers.vibration ?? 0, unit: 'g/s'  },
@@ -803,9 +811,9 @@ function renderTemporal() {
   const rows = metrics.map(m => {
     const rateStr = (m.rate !== null && m.rate !== undefined)
       ? (m.rate >= 0 ? '+' : '') + m.rate.toFixed(4) + ' ' + m.unit
-      : 'â€”';
+      : '—';
 
-    // 3/3 = persistent â†’ caution styling
+    // 3/3 = persistent → caution styling
     // 1/3 or 2/3 = informational only (neutral pill, no caution color)
     const isPersistent = m.count >= 3;
     const pillClass    = isPersistent ? 'temporal-pill--persistent' : '';
@@ -824,9 +832,9 @@ function renderTemporal() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  12. RENDER â€” SCORE BREAKDOWN                            â•‘
-   â•‘      Renders score_breakdown as-is from backend.         â•‘
-   â•‘      Zero computation in this function.                  â•‘
+   ║  12. RENDER — SCORE BREAKDOWN                            ║
+   ║      Renders score_breakdown as-is from backend.         ║
+   ║      Zero computation in this function.                  ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderBreakdown() {
   const data      = appState.data;
@@ -843,28 +851,75 @@ function renderBreakdown() {
   ledger.hidden  = false;
   unavail.hidden = true;
 
-  // Render each field directly from the backend object â€” NO recomputation
+  if (breakdown.live) {
+    setTxt('bd-base',
+      breakdown.sensor_1_trust !== null
+        ? Number(breakdown.sensor_1_trust).toFixed(1)
+        : '—');
+
+    setTxt('bd-anomaly',
+      breakdown.sensor_2_trust !== null
+        ? Number(breakdown.sensor_2_trust).toFixed(1)
+        : '—');
+
+    setTxt('bd-warning',
+      breakdown.sensor_1_anomaly_score !== null
+        ? Number(breakdown.sensor_1_anomaly_score).toFixed(4)
+        : '—');
+
+    setTxt('bd-critical',
+      breakdown.sensor_2_anomaly_score !== null
+        ? Number(breakdown.sensor_2_anomaly_score).toFixed(4)
+        : '—');
+
+    setTxt('bd-degradation',
+      breakdown.agreement_score !== null
+        ? Number(breakdown.agreement_score).toFixed(2)
+        : '—');
+
+    setTxt('bd-total',
+      data?.trust_score !== null
+        ? Number(data.trust_score).toFixed(1)
+        : '—');
+
+    const labelFor = (id, label) => {
+      const valueEl = document.getElementById(id);
+      const row = valueEl?.closest('.breakdown-row');
+      const labelEl = row?.querySelector('.breakdown-label');
+      if (labelEl) labelEl.textContent = label;
+    };
+
+    labelFor('bd-base', 'Sensor 1 trust');
+    labelFor('bd-anomaly', 'Sensor 2 trust');
+    labelFor('bd-warning', 'Sensor 1 anomaly score');
+    labelFor('bd-critical', 'Sensor 2 anomaly score');
+    labelFor('bd-degradation', 'Agreement score');
+    return;
+  }
+
+  // Existing demo-mode penalty breakdown.
   setTxt('bd-base',        `+${breakdown.base ?? 100}`);
   setTxt('bd-anomaly',     fmtPenalty(breakdown.anomaly_penalty));
   setTxt('bd-warning',     fmtPenalty(breakdown.warning_penalty));
   setTxt('bd-critical',    fmtPenalty(breakdown.critical_penalty));
   setTxt('bd-degradation', fmtPenalty(breakdown.degradation_penalty));
-
-  // Final total: read from data.trust_score (also backend-provided)
-  setTxt('bd-total', data?.trust_score !== null ? data.trust_score.toFixed(1) : 'â€”');
+  setTxt('bd-total',
+    data?.trust_score !== null
+      ? data.trust_score.toFixed(1)
+      : '—');
 }
 
 function fmtPenalty(v) {
   if (v === null || v === undefined) return '0';
   const n = Number(v);
   if (n === 0) return '0';
-  return `âˆ’${n.toFixed(1)}`; // en-dash minus for display
+  return `−${n.toFixed(1)}`; // en-dash minus for display
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  13. RENDER â€” DECISION EXPLANATION                       â•‘
-   â•‘      Rendered exclusively from backend reasons/evidence. â•‘
-   â•‘      No invented copy.                                   â•‘
+   ║  13. RENDER — DECISION EXPLANATION                       ║
+   ║      Rendered exclusively from backend reasons/evidence. ║
+   ║      No invented copy.                                   ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderDecision() {
   const data     = appState.data;
@@ -883,7 +938,7 @@ function renderDecision() {
     return;
   }
 
-  // Trust Engine data is present â€” show content, hide placeholder
+  // Trust Engine data is present — show content, hide placeholder
   unavail.hidden = true;
   content.hidden = false;
 
@@ -897,7 +952,7 @@ function renderDecision() {
     FAULT:     { icon: 'block', label: 'Sensors untrusted',    color: 'var(--state-critical)' },
     OFFLINE:   { icon: 'block', label: 'Machine offline',    color: 'var(--state-critical)' },
   };
-  const s = statusMap[state] ?? { icon: '', label: state ?? 'â€”', color: 'var(--color-steel)' };
+  const s = statusMap[state] ?? { icon: '', label: state ?? '—', color: 'var(--color-steel)' };
 
   const statusLineEl = document.getElementById('decision-status-line');
   statusLineEl.innerHTML = `${icon(s.icon)}<span>${esc(s.label)}</span>`;
@@ -916,13 +971,13 @@ function renderDecision() {
   }
 
   const verdictEl = document.getElementById('decision-verdict');
-  verdictEl.textContent = `Decision: ${decision ?? 'â€”'}`;
+  verdictEl.textContent = `Decision: ${decision ?? '—'}`;
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  14. SHARED CHART RENDERER                               â•‘
-   â•‘      Used by inline Live Charts section AND the modal.   â•‘
-   â•‘      One function, reused everywhere â€” no drift.         â•‘
+   ║  14. SHARED CHART RENDERER                               ║
+   ║      Used by inline Live Charts section AND the modal.   ║
+   ║      One function, reused everywhere — no drift.         ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 // series = [{ label: string, color: string, points: [{ t: number, value: number }] }]
 function renderLineChart(container, series, { height = 220 } = {}) {
@@ -1067,7 +1122,7 @@ function setupCrosshair(svgId, series, px, py, pad, W, height, tMin, tMax, vMin,
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  15. CHARTS SECTION                                      â•‘
+   ║  15. CHARTS SECTION                                      ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const CHARTS = {
   temperature: {
@@ -1109,7 +1164,7 @@ function buildSeries(chartKey, rangeSeconds) {
   let filtered   = appState.history.filter(h => new Date(h.timestamp).getTime() >= cutoff);
   if (filtered.length < 2) filtered = appState.history.slice(-10);
 
-  // Resolve active violations from the current backend payload â€” pass-through only.
+  // Resolve active violations from the current backend payload — pass-through only.
   // Color override is driven by explicit rule_summary.violations, never inferred from raw telemetry.
   const violations = appState.data?.rule_summary?.violations ?? [];
 
@@ -1118,7 +1173,7 @@ function buildSeries(chartKey, rangeSeconds) {
     if (!hit) return null;
     const sev = (hit.severity ?? '').toUpperCase();
     if (sev === 'CRITICAL') return 'var(--state-critical)';
-    // WARNING / CAUTION â†’ state-caution
+    // WARNING / CAUTION → state-caution
     return 'var(--state-caution)';
   }
 
@@ -1179,7 +1234,7 @@ function initRangeControls() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  16. TIMELINE                                            â•‘
+   ║  16. TIMELINE                                            ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function renderTimeline() {
   const track  = document.getElementById('timeline-track');
@@ -1236,16 +1291,16 @@ function showTimelineDetail(entry) {
   const el = document.getElementById('timeline-detail');
   if (!el) return;
 
-  const fmt = (v, d = 1) => (v !== null && v !== undefined && !isNaN(v)) ? Number(v).toFixed(d) : 'â€”';
+  const fmt = (v, d = 1) => (v !== null && v !== undefined && !isNaN(v)) ? Number(v).toFixed(d) : '—';
   const t   = entry.telemetry ?? {};
   const time = new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const score   = entry.trust_score !== null && entry.trust_score !== undefined ? Number(entry.trust_score).toFixed(1) : 'â€”';
-  const state   = entry.state    ?? 'â€”';
-  const decision = entry.decision ?? 'â€”';
+  const score   = entry.trust_score !== null && entry.trust_score !== undefined ? Number(entry.trust_score).toFixed(1) : '—';
+  const state   = entry.state    ?? '—';
+  const decision = entry.decision ?? '—';
   const stateColor = entry.state ? stateToColor(entry.state) : 'inherit';
 
   const reasons = Array.isArray(entry.reasons) && entry.reasons.length
-    ? entry.reasons.join(' Â· ')
+    ? entry.reasons.join(' · ')
     : (entry.state === 'NORMAL' ? 'All rules satisfied. Normal operation.' : '');
 
   el.hidden = false;
@@ -1272,7 +1327,7 @@ function showTimelineDetail(entry) {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  17. TECHNICAL DETAILS                                   â•‘
+   ║  17. TECHNICAL DETAILS                                   ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function initTechnicalDetails() {
   const toggle = document.getElementById('technical-toggle');
@@ -1290,7 +1345,7 @@ function initTechnicalDetails() {
 function renderTechnicalDetails() {
   const data   = appState.data;
   const anomaly = data?.anomaly_summary ?? null;
-  setTxt('tech-model-status', anomaly?.model_status ?? 'â€”');
+  setTxt('tech-model-status', anomaly?.model_status ?? '—');
   setTxt('tech-features',     String(anomaly?.features_used ?? 34));
 
   const rawLink = document.getElementById('technical-raw-link');
@@ -1305,7 +1360,7 @@ function renderTechnicalDetails() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  18. MODAL                                               â•‘
+   ║  18. MODAL                                               ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const chartModal = (() => {
   let _category   = null;
@@ -1318,9 +1373,9 @@ const chartModal = (() => {
     vibration:   'Vibration',
   };
   const subtitles = {
-    temperature: 'Sensor 1 Â· Sensor 2 Â· Average',
+    temperature: 'Sensor 1 · Sensor 2 · Average',
     rotation:    'RPM',
-    electrical:  'Current (A) Â· Power (W)',
+    electrical:  'Current (A) · Power (W)',
     vibration:   'Vibration (g)',
   };
 
@@ -1428,7 +1483,7 @@ const chartModal = (() => {
 })();
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  19. TELEMETRY CARD CLICKS                               â•‘
+   ║  19. TELEMETRY CARD CLICKS                               ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function initTelemetryCardClicks() {
   document.querySelectorAll('.telemetry-card').forEach(card => {
@@ -1441,7 +1496,7 @@ function initTelemetryCardClicks() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  20. DATA POLLING                                        â•‘
+   ║  20. DATA POLLING                                        ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 let liveRequestPending = false;
 async function fetchLatest() {
@@ -1496,7 +1551,7 @@ function stopPolling() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  21. DEMO MODE                                           â•‘
+   ║  21. DEMO MODE                                           ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function enterDemoMode() {
   stopPolling();
@@ -1559,7 +1614,7 @@ function initDemoButtons() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  MASTER RENDER                                           â•‘
+   ║  MASTER RENDER                                           ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 function renderCommandCenter() {
@@ -1580,21 +1635,21 @@ function renderCommandCenter() {
   const corroborated = d.corroborated_event ?? appState.lastRawPayload?.corroborated_event ?? appState.lastRawPayload?.trust?.corroborated_event;
   const anomalous = d.anomaly_summary?.is_anomaly;
 
-  setText('cmd-trust', d.state ?? 'â€”');
-  setText('cmd-agreement', agreement === true ? 'AGREE' : agreement === false ? 'DISAGREE' : 'â€”');
-  setText('cmd-event', corroborated === true ? 'CORROBORATED' : corroborated === false ? 'NONE' : 'â€”');
+  setText('cmd-trust', d.state ?? '—');
+  setText('cmd-agreement', agreement === true ? 'AGREE' : agreement === false ? 'DISAGREE' : '—');
+  setText('cmd-event', corroborated === true ? 'CORROBORATED' : corroborated === false ? 'NONE' : '—');
   setText('cmd-anomaly', anomalous === true ? 'DETECTED' : anomalous === false ? 'CLEAR' : 'Unavailable');
 
-  setText('sensor1-value', t1 != null ? Number(t1).toFixed(2) : 'â€”');
-  setText('sensor2-value', t2 != null ? Number(t2).toFixed(2) : 'â€”');
-  setText('sensor1-trust', s1.trust_score != null ? `${Number(s1.trust_score).toFixed(0)}/100` : 'â€”');
-  setText('sensor2-trust', s2.trust_score != null ? `${Number(s2.trust_score).toFixed(0)}/100` : 'â€”');
-  setText('sensor1-anomaly', s1.anomaly === true ? 'ANOMALY' : s1.anomaly === false ? 'NORMAL' : 'â€”');
-  setText('sensor2-anomaly', s2.anomaly === true ? 'ANOMALY' : s2.anomaly === false ? 'NORMAL' : 'â€”');
-  setText('pair-agreement', agreement === true ? 'âœ“ AGREE' : agreement === false ? 'âœ• DISAGREE' : 'â€”');
+  setText('sensor1-value', t1 != null ? Number(t1).toFixed(2) : '—');
+  setText('sensor2-value', t2 != null ? Number(t2).toFixed(2) : '—');
+  setText('sensor1-trust', s1.trust_score != null ? `${Number(s1.trust_score).toFixed(0)}/100` : '—');
+  setText('sensor2-trust', s2.trust_score != null ? `${Number(s2.trust_score).toFixed(0)}/100` : '—');
+  setText('sensor1-anomaly', s1.anomaly === true ? 'ANOMALY' : s1.anomaly === false ? 'NORMAL' : '—');
+  setText('sensor2-anomaly', s2.anomaly === true ? 'ANOMALY' : s2.anomaly === false ? 'NORMAL' : '—');
+  setText('pair-agreement', agreement === true ? '✓ AGREE' : agreement === false ? '✕ DISAGREE' : '—');
 
-  if (t1 != null && t2 != null) setText('pair-delta', `Î” ${Math.abs(Number(t1)-Number(t2)).toFixed(2)} Â°C`);
-  else setText('pair-delta', 'Î” â€”');
+  if (t1 != null && t2 != null) setText('pair-delta', `Δ ${Math.abs(Number(t1)-Number(t2)).toFixed(2)} °C`);
+  else setText('pair-delta', 'Δ —');
 }
 
 function renderAll() {
@@ -1613,7 +1668,7 @@ function renderAll() {
 }
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  22. INIT                                                â•‘
+   ║  22. INIT                                                ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 document.addEventListener('DOMContentLoaded', () => {
   const navigationLinks = [...document.querySelectorAll('.rail-nav a')];
@@ -1648,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-   â•‘  UTILITIES                                               â•‘
+   ║  UTILITIES                                               ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /** Monoline icons, same stroke language as the fan twin */
@@ -1666,7 +1721,7 @@ function icon(name, extra = '') {
 /** Set text content safely */
 function setTxt(id, text) {
   const el = document.getElementById(id);
-  if (el) el.textContent = text ?? 'â€”';
+  if (el) el.textContent = text ?? '—';
 }
 
 /** Escape HTML to prevent XSS from any backend string */
