@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PulseTrust_ · TrustTwin</title>
+  <script src="theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="dashboard.css" />
 </head>
@@ -25,7 +26,7 @@
       <a href="#section-timeline"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Event timeline</a>
       <a href="#section-technical"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="#152c32"/><circle cx="15" cy="17" r="3" fill="#152c32"/></svg>Diagnostics</a>
     </nav>
-    <div class="rail-bottom"><span class="rail-mark">TRUST BEFORE ACTION.</span><p>Better decisions begin with<br>measurements you can trust.</p><span class="prototype-tag">PROTOTYPE &middot; V1.0</span></div>
+    <div class="rail-bottom"><div class="rail-orbit" aria-hidden="true"><span></span></div><span class="rail-mark">TRUST BEFORE ACTION.</span><p>Better decisions begin with<br>measurements you can trust.</p><span class="prototype-tag">PROTOTYPE &middot; V1.0</span></div>
   </aside>
 
   <!-- ── HEADER ──────────────────────────────────────────────────────── -->
@@ -33,11 +34,16 @@
     <div class="page-wrapper site-header__inner">
 
       <div class="site-header__brand">
-        <span class="header-breadcrumb">Workspace <span>/</span> <strong>Overview</strong></span>
-        <span class="sub-mark">TrustTwin</span>
+        <span class="header-breadcrumb">Workspace <span>/</span> <strong id="current-section">Overview</strong></span>
+        <span class="sub-mark">TrustTwin <span aria-hidden="true">&nearr;</span></span>
       </div>
 
       <div class="site-header__controls">
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" title="Switch to dark mode">
+          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z"/></svg>
+          <span id="theme-label">Light</span>
+        </button>
 
         <!-- Demo pill — visible only in demo mode -->
         <div class="demo-pill" id="demo-pill" hidden>
@@ -67,8 +73,9 @@
     <!-- ── HERO: Trust Score + Digital Twin ──────────────────────────── -->
     <section class="section section--white" id="section-hero" aria-labelledby="hero-heading">
       <div class="page-wrapper">
-        <div class="overview-heading"><div><p class="page-eyebrow">MACHINE MONITORING</p><h1 id="hero-heading">Every signal. A clearer picture.</h1><p class="page-description">Understand your machine. Verify your sensors. Act with confidence.</p></div><a class="overview-link" href="#section-charts">Explore analytics <span aria-hidden="true">&nearr;</span></a></div>
-        <div class="panel-heading"><h2>Machine overview</h2><span>Trust &amp; digital twin</span></div>
+        <div class="overview-heading"><div><p class="page-eyebrow">THE MACHINE INTELLIGENCE WORKSPACE</p><h1 id="hero-heading">See beyond<br>the <span class="heading-accent">signal.</span></h1><p class="page-description">Real-time telemetry. Explainable trust.
+            A complete picture of the machine that matters.</p></div><a class="overview-link" href="#section-charts">Explore analytics <span aria-hidden="true">&nearr;</span></a></div>
+        <div class="panel-heading"><h2><span class="section-index">01 /</span> Machine overview</h2><span class="instrument-label">TRUST &amp; DIGITAL TWIN</span></div>
         <div class="card card--asymmetric hero-card reveal">
 
           <!-- Left: Trust Score -->
@@ -84,10 +91,10 @@
                   <circle class="trust-ring__progress" cx="80" cy="80" r="68" id="trust-ring-progress" />
                 </svg>
                 <div class="hero-ring-label">
-                  <span class="trust-score-number" id="trust-score-number">—</span>
+                  <span class="trust-score-number" id="trust-score-number">—</span><span class="score-denominator">/ 100</span>
                 </div>
               </div>
-              <p class="trust-score-caption">Trust score</p>
+              <p class="trust-score-caption">SIGNAL CONFIDENCE</p>
               <div class="trust-state-row">
                 <span class="state-dot" id="state-dot" aria-hidden="true"></span>
                 <span class="state-label" id="state-label">—</span>
@@ -98,10 +105,10 @@
             <!-- Unavailable state (Trust Engine not yet provided by backend) -->
             <div id="hero-unavailable">
               <div class="trust-unavail-dash" aria-hidden="true">—</div>
-              <p class="trust-score-caption">Trust score</p>
+              <p class="trust-score-caption">SIGNAL CONFIDENCE</p>
               <p class="trust-unavail-notice">
-                Trust Engine data not yet available from this backend.
-                Live telemetry is still being collected below.
+                Waiting for trust assessment.
+                Sensor readings appear below as they arrive.
               </p>
             </div>
 
@@ -110,13 +117,13 @@
           <!-- Right: Digital Twin -->
           <div class="hero-twin">
             <div class="twin-label-row">
-              <span class="twin-eyebrow">Digital twin</span>
+              <span class="twin-eyebrow">DIGITAL TWIN <span class="twin-version">/ 01</span></span>
               <span class="twin-device-id" id="twin-device-id">—</span>
             </div>
             <div class="twin-canvas" id="twin-canvas" aria-label="Fan machine digital twin visualization">
               <!-- Fan SVG injected by script.js -->
             </div>
-            <div class="twin-meta">
+            <div class="twin-stage-caption" aria-hidden="true"><span>AXIAL FAN</span><span>TELEMETRY DRIVEN</span></div><div class="twin-meta">
               <div class="twin-rpm-display">
                 <span class="twin-rpm-value" id="twin-rpm-value">—</span>
                 <span class="twin-rpm-unit">RPM</span>
@@ -150,7 +157,7 @@
     <!-- ── LIVE TELEMETRY ─────────────────────────────────────────────── -->
     <section class="section section--ash" id="section-telemetry" aria-labelledby="tel-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="tel-heading">Live telemetry</h2>
+        <div class="panel-heading"><h2 id="tel-heading"><span class="section-index">02 /</span> Live telemetry</h2><span>Select a signal to inspect its history &nearr;</span></div>
         <div class="telemetry-grid">
 
           <!-- Temperature -->
@@ -159,7 +166,7 @@
                    role="button" tabindex="0"
                    aria-label="Temperature — click to expand chart">
             <div class="tel-card-header">
-              <span class="tel-card-title">Temperature</span>
+              <span class="tel-card-title"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0Z"/><path d="M12 9v9m5-11h3m-3 4h2"/></svg></span>Temperature</span>
               <span class="tel-expand-hint" aria-hidden="true">↗</span>
             </div>
             <div class="tel-primary">
@@ -187,7 +194,7 @@
                    role="button" tabindex="0"
                    aria-label="Rotation — click to expand chart">
             <div class="tel-card-header">
-              <span class="tel-card-title">Rotation</span>
+              <span class="tel-card-title"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/></svg></span>Rotation</span>
               <span class="tel-expand-hint" aria-hidden="true">↗</span>
             </div>
             <div class="tel-primary">
@@ -208,7 +215,7 @@
                    role="button" tabindex="0"
                    aria-label="Electrical — click to expand chart">
             <div class="tel-card-header">
-              <span class="tel-card-title">Electrical</span>
+              <span class="tel-card-title"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-13h-7Z"/></svg></span>Electrical</span>
               <span class="tel-expand-hint" aria-hidden="true">↗</span>
             </div>
             <div class="tel-primary">
@@ -240,7 +247,7 @@
                    role="button" tabindex="0"
                    aria-label="Vibration — click to expand chart">
             <div class="tel-card-header">
-              <span class="tel-card-title">Vibration</span>
+              <span class="tel-card-title"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l3-7 5 14 3-7h5"/></svg></span>Vibration</span>
               <span class="tel-expand-hint" aria-hidden="true">↗</span>
             </div>
             <div class="tel-primary">
@@ -261,7 +268,7 @@
 
     <section class="sensor-pair-section section--ash" aria-label="Redundant sensor trust">
       <div class="page-wrapper">
-        <div class="panel-heading"><h2>Sensor agreement</h2><span>Independent readings. Shared evidence.</span></div>
+        <div class="panel-heading"><h2><span class="section-index">03 /</span> Sensor agreement</h2><span>Independent readings. Shared evidence.</span></div>
         <div class="sensor-pair-grid reveal">
           <article class="sensor-trust-card">
             <div class="sensor-card-top"><span>TEMP SENSOR 01</span><span class="sensor-dot"></span></div>
@@ -386,7 +393,7 @@
     <!-- ── LIVE CHARTS ────────────────────────────────────────────────── -->
     <section class="section section--ash" id="section-charts" aria-labelledby="charts-heading">
       <div class="page-wrapper">
-        <h2 class="section-heading reveal" id="charts-heading">Live charts</h2>
+        <div class="panel-heading"><h2 id="charts-heading">Signal history</h2><span>A closer look at how your machine changes over time</span></div>
         <div class="charts-grid">
 
           <!-- Temperature Chart -->

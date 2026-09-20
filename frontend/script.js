@@ -564,15 +564,25 @@ function buildFanSVG() {
       d="M ${(cx + Math.cos(a0)*r0).toFixed(2)} ${(cy + Math.sin(a0)*r0).toFixed(2)}
          C ${(cx + Math.cos(a1)*r1).toFixed(2)} ${(cy + Math.sin(a1)*r1).toFixed(2)},
            ${(cx + Math.cos(a2)*r2).toFixed(2)} ${(cy + Math.sin(a2)*r2).toFixed(2)},
-           ${(cx + Math.cos(a3)*r3).toFixed(2)} ${(cy + Math.sin(a3)*r3).toFixed(2)}"
-      fill="none" stroke-width="2.5" stroke-linecap="round" />`);
+           ${(cx + Math.cos(a3)*r3).toFixed(2)} ${(cy + Math.sin(a3)*r3).toFixed(2)}
+         Q ${(cx + Math.cos(a3 + .27)*66).toFixed(2)} ${(cy + Math.sin(a3 + .27)*66).toFixed(2)},
+           ${(cx + Math.cos(a0 + .65)*r0).toFixed(2)} ${(cy + Math.sin(a0 + .65)*r0).toFixed(2)} Z"
+      fill="url(#blade-metal)" stroke-width="1.2" stroke-linecap="round" />`);
   }
 
   return `<svg id="fan-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="blade-metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9bc9c4" stop-opacity=".6"/><stop offset=".5" stop-color="#3a726e" stop-opacity=".3"/><stop offset="1" stop-color="#102f33"/></linearGradient>
+      <radialGradient id="hub-metal"><stop stop-color="#9ecfc8"/><stop offset=".5" stop-color="#2e5e5c"/><stop offset="1" stop-color="#132f33"/></radialGradient>
+    </defs>
+    <circle cx="120" cy="120" r="110" fill="none" stroke="currentColor" opacity=".15" stroke-dasharray="2 7"/>
+    <circle cx="120" cy="120" r="99" fill="none" stroke="currentColor" opacity=".25"/>
+    <circle cx="120" cy="120" r="91" fill="none" stroke="currentColor" opacity=".12" stroke-width="6"/>
+    <path d="M120 4v13m0 206v13M4 120h13m206 0h13" stroke="currentColor" opacity=".6"/>
     <g id="fan-group" class="fan-group fan-rotating">
       ${blades.join('\n      ')}
-      <circle id="fan-hub"        cx="${cx}" cy="${cy}" r="${hubR}" fill="none" stroke-width="2.5" />
+      <circle id="fan-hub"        cx="${cx}" cy="${cy}" r="${hubR}" fill="url(#hub-metal)" stroke-width="1.5" />
       <circle id="fan-hub-center" cx="${cx}" cy="${cy}" r="4" />
     </g>
     <g id="fan-warn-glyph" opacity="0" aria-hidden="true" fill="none" stroke="var(--state-caution)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M182 46 L196 72 H168 Z"/><path d="M182 56 V64"/><path d="M182 68 V68.5"/></g>
@@ -1658,6 +1668,7 @@ function renderAll() {
   renderHero();
   renderDigitalTwin();
   renderTelemetry();
+  renderTelemetryTrends();
   renderEvidence();
   renderBreakdown();
   renderDecision();
@@ -1671,13 +1682,23 @@ function renderAll() {
    ║  22. INIT                                                ║
    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.telemetry-card').forEach(card => {
+    const trend = document.createElement('div');
+    trend.className = 'telemetry-trend';
+    trend.id = `trend-${card.dataset.category}`;
+    card.appendChild(trend);
+  });
+  renderTelemetryTrends();
   const navigationLinks = [...document.querySelectorAll('.rail-nav a')];
   const navigationObserver = new IntersectionObserver(entries => {
     const visible = entries.filter(entry => entry.isIntersecting)
       .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
     if (!visible) return;
     navigationLinks.forEach(link => {
-      if (link.hash === `#${visible.target.id}`) link.setAttribute('aria-current', 'location');
+      if (link.hash === `#${visible.target.id}`) {
+        link.setAttribute('aria-current', 'location');
+        setTxt('current-section', link.textContent.trim());
+      }
       else link.removeAttribute('aria-current');
     });
   }, { rootMargin: '-5% 0px -55% 0px', threshold: 0 });
@@ -1701,6 +1722,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (appState.data && appState.lastUpdated) renderHeader();
   }, 1000);
 });
+
+// Compact trends use recorded samples only; gaps remain visible as gaps.
+function renderTelemetryTrends() {
+  const metrics = { temperature: 'temp_avg', rotation: 'rpm', electrical: 'power', vibration: 'vibration' };
+  Object.entries(metrics).forEach(([category, key]) => {
+    const target = document.getElementById(`trend-${category}`);
+    if (!target) return;
+    const samples = appState.history.slice(-30).map(point => point.telemetry?.[key]);
+    const values = samples.filter(value => typeof value === 'number' && Number.isFinite(value));
+    if (values.length < 2) {
+      target.innerHTML = '<span class="trend-caption">Collecting signal history</span><span class="trend-placeholder" aria-hidden="true"></span>';
+      return;
+    }
+    const min = Math.min(...values), max = Math.max(...values);
+    let continuing = false;
+    const path = samples.map((value, index) => {
+      if (typeof value !== 'number' || !Number.isFinite(value)) { continuing = false; return ''; }
+      const x = 2 + index / (samples.length - 1) * 196;
+      const y = max === min ? 20 : 34 - (value - min) / (max - min) * 28;
+      const command = continuing ? 'L' : 'M';
+      continuing = true;
+      return `${command}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    target.innerHTML = `<span class="trend-caption">Recent samples <span>View history ↗</span></span><svg viewBox="0 0 200 40" preserveAspectRatio="none" role="img" aria-label="Recent ${category} readings, individually scaled"><path d="${path}" fill="none" stroke="currentColor" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  });
+}
 
 /* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
    ║  UTILITIES                                               ║
